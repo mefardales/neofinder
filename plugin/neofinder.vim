@@ -65,6 +65,9 @@ command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupRem
 command! -nargs=0 NeoTerminal    call neofinder#buffers#open_terminal()
 command! -nargs=+ NeoRun         call neofinder#buffers#open_terminal(<q-args>)
 command! -nargs=0 NeoConfig   call neofinder#config#open()
+command! -nargs=1 -complete=customlist,neofinder#python#complete NeoPythonExec call neofinder#python#exec(<q-args>)
+command! -nargs=0 NeoPythonList call neofinder#python#show_list()
+command! -nargs=+ NeoPythonBind call s:python_bind(<f-args>)
 command! -nargs=0 NeoHelp     call neofinder#help()
 
 " ---------------------------------------------------------------------------
@@ -85,6 +88,29 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fR :NeoTerminal<CR>
   nnoremap <silent> <Leader>fS :NeoConfig<CR>
   nnoremap <silent> <Leader>f? :NeoHelp<CR>
+endif
+
+" ---------------------------------------------------------------------------
+" Helper for :NeoPythonBind  (splits args into name + key)
+" ---------------------------------------------------------------------------
+function! s:python_bind(...) abort
+  if a:0 < 2
+    echohl ErrorMsg
+    echo 'Usage: :NeoPythonBind <CommandName> <key>'
+    echohl None
+    return
+  endif
+  call neofinder#python#bind(a:1, a:2)
+endfunction
+
+" ---------------------------------------------------------------------------
+" Auto-load user Python commands from ~/.neofinder/python/
+" ---------------------------------------------------------------------------
+if has('python3')
+  augroup NeoFinderPython
+    autocmd!
+    autocmd VimEnter * call neofinder#python#autoload()
+  augroup END
 endif
 
 let &cpo = s:save_cpo
