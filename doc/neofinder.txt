@@ -19,9 +19,11 @@ CONTENTS                                            *neofinder-contents*
     3. Commands .................. |neofinder-commands|
     4. Key Bindings .............. |neofinder-keys|
     5. Configuration ............. |neofinder-config|
-    6. Sources ................... |neofinder-sources|
-    7. Tagging ................... |neofinder-tags|
-    8. Backends .................. |neofinder-backends|
+    6. Themes .................... |neofinder-themes|
+    7. Sources ................... |neofinder-sources|
+    8. Buffer & Tab Manager ...... |neofinder-buffers|
+    9. Tagging ................... |neofinder-tags|
+   10. Backends .................. |neofinder-backends|
 
 ==============================================================================
 1. INTRODUCTION                                     *neofinder-intro*
@@ -61,6 +63,14 @@ One-liner: >
 *:NeoTags*         Show tagged/bookmarked files
 *:NeoTag*          Tag the current buffer's file
 *:NeoUntag*        Untag the current buffer's file
+*:NeoBuffers*      Fuzzy buffer list (switch, split, delete)
+*:NeoTabGroups*    List and switch between named tab groups
+*:NeoGroupCreate*  Create a named tab group (tmux-like session)
+*:NeoGroupAdd*     Add current tab to a named group
+*:NeoGroupRemove*  Remove current tab from a named group
+*:NeoTerminal*     Open a terminal in a bottom split
+*:NeoRun*          Open terminal and execute a command
+*:NeoConfig*       Open settings panel (themes, display options)
 *:NeoHelp*         Show all commands and keybindings
 
 ==============================================================================
@@ -77,6 +87,10 @@ Default leader mappings (disable with g:neofinder.no_mappings): >
     <Leader>fa    :NeoAnsible
     <Leader>ft    :NeoTags
     <Leader>fT    :NeoTag
+    <Leader>fb    :NeoBuffers
+    <Leader>fg    :NeoTabGroups
+    <Leader>fR    :NeoTerminal
+    <Leader>fS    :NeoConfig
     <Leader>f?    :NeoHelp
 <
 Inside the finder window:
@@ -93,6 +107,10 @@ Inside the finder window:
     <C-d>         Deselect all
     <C-j>/<C-n>   Move cursor down
     <C-k>/<C-p>   Move cursor up
+    <C-d>         Delete buffer (buffers source) / deselect all
+    <Left>        Shrink preview pane (-8 cols)
+    <Right>       Grow preview pane (+8 cols)
+    <F1>          Open settings panel
     <Esc>/<C-c>   Close finder
 
 ==============================================================================
@@ -117,7 +135,38 @@ Set options via the |g:neofinder| dictionary: >
 <
 
 ==============================================================================
-6. SOURCES                                          *neofinder-sources*
+6. THEMES                                           *neofinder-themes*
+
+NeoFinder supports multiple themes.  Built-in themes:
+
+    matrix      Green on black (cyberpunk, the default)
+    dark        Gray/white on dark, with colored syntax
+    cyberpunk   Magenta/cyan neon on dark
+    default     Uses Vim's native colors
+
+Switch themes with |:NeoConfig| or set in your vimrc: >
+    let g:neofinder = { 'theme': 'cyberpunk' }
+<
+                                                    *neofinder-custom-themes*
+Create custom themes:
+
+1. Use |:NeoConfig| and select "Create custom theme from current..."
+2. Edit the generated file in ~/.neofinder/themes/<name>.vim
+3. Each theme is a Vimscript dictionary with keys like Normal, Prompt,
+   Cursor, Keyword, String, Comment, etc.
+
+Example custom theme file: >
+    let g:neofinder_custom_theme = {
+        \ 'Normal':  {'ctermfg': 250, 'ctermbg': 234,
+        \             'guifg': '#BCBCBC', 'guibg': '#1C1C1C'},
+        \ 'Cursor':  {'ctermfg': 0,  'ctermbg': 214,
+        \             'guifg': '#000000', 'guibg': '#FFAF00',
+        \             'cterm': 'bold', 'gui': 'bold'},
+        \ }
+<
+
+==============================================================================
+7. SOURCES                                          *neofinder-sources*
 
 files       All files under cwd (respects ignore list)
 configs     System and user config files
@@ -129,13 +178,41 @@ ansible     Ansible YAML, INI, Jinja2 files
 tags        User-bookmarked files
 
 ==============================================================================
-7. TAGGING                                          *neofinder-tags*
+8. BUFFER & TAB MANAGER                             *neofinder-buffers*
+
+NeoFinder includes a tmux-like buffer and tab group manager.
+
+                                                    *neofinder-buffer-list*
+|:NeoBuffers| opens a fuzzy list of all open buffers.  Use arrow keys or
+<C-j>/<C-k> to navigate, <CR> to switch, <C-v> to vsplit, <C-x> to split,
+and <C-d> to close/delete the buffer under the cursor.
+
+                                                    *neofinder-tab-groups*
+Tab groups are named collections of tabs, similar to tmux sessions: >
+
+    :NeoGroupCreate work       " create group 'work', add current tab
+    :NeoGroupAdd work          " add current tab to 'work'
+    :NeoGroupRemove work       " remove current tab from 'work'
+    :NeoTabGroups              " fuzzy-list groups, <CR> to switch
+<
+Groups are persisted in ~/.neofinder/tabgroups.json.
+
+                                                    *neofinder-terminal*
+|:NeoTerminal| opens a terminal in a bottom split.
+|:NeoRun| opens a terminal and executes a command: >
+
+    :NeoRun htop
+    :NeoRun docker ps
+<
+
+==============================================================================
+9. TAGGING                                          *neofinder-tags*
 
 Tags are stored in ~/.neofinder/tags (one path per line).
 Use |:NeoTag| and |:NeoUntag| to manage, |:NeoTags| to browse.
 
 ==============================================================================
-8. BACKENDS                                         *neofinder-backends*
+10. BACKENDS                                        *neofinder-backends*
 
 NeoFinder auto-detects the fastest available file-listing backend:
 

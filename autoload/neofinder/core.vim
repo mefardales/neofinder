@@ -342,11 +342,42 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-D → deselect all
+    " Ctrl-D → delete buffer (buffers source) or deselect all (other sources)
     if c == 4
-      let s:state.selected = {}
+      if s:state.source ==# 'buffers' && s:state.cursor < len(s:state.filtered)
+        let item = s:state.filtered[s:state.cursor]
+        let nr = neofinder#buffers#extract_bufnr(item)
+        if nr > 0 && bufexists(nr)
+          execute 'bwipeout ' . nr
+          " Refresh the buffer list
+          let s:state.items = neofinder#sources#gather('buffers')
+          call s:refilter()
+        endif
+      else
+        let s:state.selected = {}
+      endif
       call s:redraw()
       continue
+    endif
+
+    " Left Arrow → shrink preview (make finder wider)
+    if ch ==# "\<Left>"
+      call s:resize_preview(-8)
+      continue
+    endif
+
+    " Right Arrow → grow preview (make finder narrower)
+    if ch ==# "\<Right>"
+      call s:resize_preview(8)
+      continue
+    endif
+
+    " F1 → open config panel (closes finder first)
+    if ch ==# "\<F1>"
+      let source = s:state.source
+      call s:cleanup()
+      call neofinder#config#open()
+      return
     endif
 
     " Printable character → add to query
@@ -357,6 +388,35 @@ function! s:input_loop() abort
       continue
     endif
   endwhile
+endfunction
+
+" ---------------------------------------------------------------------------
+" Resize the preview pane by {delta} columns
+" ---------------------------------------------------------------------------
+function! s:resize_preview(delta) abort
+  if !get(g:neofinder, 'preview', 1)
+    return
+  endif
+  let pw = get(g:neofinder, 'preview_width', 60)
+  let new_pw = pw + a:delta
+  " Clamp between 20 and 80% of screen width
+  let max_pw = float2nr(&columns * 0.8)
+  let min_pw = 20
+  let new_pw = max([min_pw, min([new_pw, max_pw])])
+  if new_pw == pw
+    return
+  endif
+  let g:neofinder.preview_width = new_pw
+
+  " Resize the actual preview window if it exists
+  call neofinder#preview#resize(new_pw)
+
+  " Show feedback
+  let pct = float2nr(100.0 * new_pw / &columns)
+  redraw
+  echohl NeoFinderStatus
+  echo printf('  Preview width: %d cols (%d%%)', new_pw, pct)
+  echohl None
 endfunction
 
 " ---------------------------------------------------------------------------

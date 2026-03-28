@@ -22,6 +22,10 @@ function! neofinder#sources#gather(source) abort
     return s:gather_ansible()
   elseif a:source ==# 'tags'
     return s:gather_tags()
+  elseif a:source ==# 'buffers'
+    return s:gather_buffers()
+  elseif a:source ==# 'tabgroups'
+    return s:gather_tabgroups()
   endif
   return []
 endfunction
@@ -208,6 +212,20 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:gather_tags() abort
   return neofinder#tags#list()
+endfunction
+
+" ---------------------------------------------------------------------------
+" buffers -- open listed buffers
+" ---------------------------------------------------------------------------
+function! s:gather_buffers() abort
+  return neofinder#buffers#list()
+endfunction
+
+" ---------------------------------------------------------------------------
+" tabgroups -- named tab groups
+" ---------------------------------------------------------------------------
+function! s:gather_tabgroups() abort
+  return neofinder#buffers#list_groups()
 endfunction
 
 " ---------------------------------------------------------------------------

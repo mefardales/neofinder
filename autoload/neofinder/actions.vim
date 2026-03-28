@@ -14,9 +14,9 @@ function! neofinder#actions#execute(source, action, targets) abort
   if a:action ==# 'edit'
     call s:action_edit(a:source, a:targets)
   elseif a:action ==# 'vsplit'
-    call s:action_vsplit(a:targets)
+    call s:action_vsplit(a:source, a:targets)
   elseif a:action ==# 'split'
-    call s:action_split(a:targets)
+    call s:action_split(a:source, a:targets)
   elseif a:action ==# 'sudo'
     call s:action_sudo(a:targets)
   elseif a:action ==# 'tail'
@@ -25,6 +25,10 @@ function! neofinder#actions#execute(source, action, targets) abort
     call s:action_systemctl('restart', a:targets)
   elseif a:action ==# 'ssh'
     call s:action_ssh(a:targets)
+  elseif a:action ==# 'delete'
+    call s:action_delete_buffer(a:targets)
+  elseif a:action ==# 'terminal'
+    call neofinder#buffers#open_terminal()
   endif
 endfunction
 
@@ -38,22 +42,34 @@ function! s:action_edit(source, targets) abort
   endif
 
   if a:source ==# 'services'
-    " Show status of the first selected service
     let unit = s:extract_unit(a:targets[0])
     call s:run_terminal_cmd('systemctl status ' . shellescape(unit))
     return
   endif
 
   if a:source ==# 'journal'
-    " Journal lines are just text; do nothing special
+    return
+  endif
+
+  if a:source ==# 'buffers'
+    let nr = neofinder#buffers#extract_bufnr(a:targets[0])
+    if nr > 0 && bufexists(nr)
+      execute 'buffer ' . nr
+    endif
+    return
+  endif
+
+  if a:source ==# 'tabgroups'
+    let name = neofinder#buffers#extract_group_name(a:targets[0])
+    if name !=# ''
+      call neofinder#buffers#switch_to_group(name)
+    endif
     return
   endif
 
   " Default: open files
   for target in a:targets
-    if filereadable(target)
-      execute 'edit ' . fnameescape(target)
-    elseif isdirectory(target)
+    if filereadable(target) || isdirectory(target)
       execute 'edit ' . fnameescape(target)
     endif
   endfor
@@ -62,15 +78,41 @@ endfunction
 " ---------------------------------------------------------------------------
 " vsplit / split
 " ---------------------------------------------------------------------------
-function! s:action_vsplit(targets) abort
+function! s:action_vsplit(source, targets) abort
   for target in a:targets
-    execute 'vsplit ' . fnameescape(target)
+    if a:source ==# 'buffers'
+      let nr = neofinder#buffers#extract_bufnr(target)
+      if nr > 0 && bufexists(nr)
+        execute 'vertical sbuffer ' . nr
+      endif
+    else
+      execute 'vsplit ' . fnameescape(target)
+    endif
   endfor
 endfunction
 
-function! s:action_split(targets) abort
+function! s:action_split(source, targets) abort
   for target in a:targets
-    execute 'split ' . fnameescape(target)
+    if a:source ==# 'buffers'
+      let nr = neofinder#buffers#extract_bufnr(target)
+      if nr > 0 && bufexists(nr)
+        execute 'sbuffer ' . nr
+      endif
+    else
+      execute 'split ' . fnameescape(target)
+    endif
+  endfor
+endfunction
+
+" ---------------------------------------------------------------------------
+" delete buffer (wipeout)
+" ---------------------------------------------------------------------------
+function! s:action_delete_buffer(targets) abort
+  for target in a:targets
+    let nr = neofinder#buffers#extract_bufnr(target)
+    if nr > 0 && bufexists(nr)
+      execute 'bwipeout ' . nr
+    endif
   endfor
 endfunction
 

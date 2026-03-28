@@ -57,6 +57,14 @@ command! -nargs=? NeoAnsible  call neofinder#open('ansible', <q-args>)
 command! -nargs=? NeoTags     call neofinder#open('tags', <q-args>)
 command! -nargs=0 NeoTag      call neofinder#tags#tag_current()
 command! -nargs=0 NeoUntag    call neofinder#tags#untag_current()
+command! -nargs=? NeoBuffers     call neofinder#open('buffers', <q-args>)
+command! -nargs=? NeoTabGroups   call neofinder#open('tabgroups', <q-args>)
+command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupCreate call neofinder#buffers#create_group(<q-args>)
+command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupAdd    call neofinder#buffers#add_to_group(<q-args>)
+command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupRemove call neofinder#buffers#remove_from_group(<q-args>)
+command! -nargs=0 NeoTerminal    call neofinder#buffers#open_terminal()
+command! -nargs=+ NeoRun         call neofinder#buffers#open_terminal(<q-args>)
+command! -nargs=0 NeoConfig   call neofinder#config#open()
 command! -nargs=0 NeoHelp     call neofinder#help()
 
 " ---------------------------------------------------------------------------
@@ -72,6 +80,10 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fa :NeoAnsible<CR>
   nnoremap <silent> <Leader>ft :NeoTags<CR>
   nnoremap <silent> <Leader>fT :NeoTag<CR>
+  nnoremap <silent> <Leader>fb :NeoBuffers<CR>
+  nnoremap <silent> <Leader>fg :NeoTabGroups<CR>
+  nnoremap <silent> <Leader>fR :NeoTerminal<CR>
+  nnoremap <silent> <Leader>fS :NeoConfig<CR>
   nnoremap <silent> <Leader>f? :NeoHelp<CR>
 endif
 

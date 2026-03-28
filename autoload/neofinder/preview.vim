@@ -199,6 +199,24 @@ function! neofinder#preview#show(path, source) abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" resize({width}) -- resize preview window to given column width
+" ---------------------------------------------------------------------------
+function! neofinder#preview#resize(width) abort
+  if s:preview_winid > 0
+    let wid = win_id2win(s:preview_winid)
+    if wid > 0
+      execute wid . 'wincmd w'
+      execute 'vertical resize ' . a:width
+      " Return to finder
+      let finder_winid = bufwinid(neofinder#core#state().bufnr)
+      if finder_winid > 0
+        call win_gotoid(finder_winid)
+      endif
+    endif
+  endif
+endfunction
+
+" ---------------------------------------------------------------------------
 " close()
 " ---------------------------------------------------------------------------
 function! neofinder#preview#close() abort
