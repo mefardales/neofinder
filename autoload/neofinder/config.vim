@@ -74,8 +74,10 @@ function! s:build_menu() abort
   call s:item('Preview pane',
         \ get(g:neofinder, 'preview', 1) ? 'ON' : 'OFF',
         \ 'toggle_preview')
+  let ed_num = s:get_editor_option('number')
+  let ed_rnum = s:get_editor_option('relativenumber')
   call s:item('Line numbers',
-        \ &number ? (&relativenumber ? 'relative' : 'ON') : 'OFF',
+        \ ed_num ? (ed_rnum ? 'relative' : 'ON') : 'OFF',
         \ 'cycle_numbers')
   call s:item('Paste mode',
         \ &paste ? 'ON' : 'OFF',
@@ -287,18 +289,24 @@ function! s:execute_action() abort
   elseif a ==# 'reload_python'
     call neofinder#python#autoload()
 
-  " Quick toggles
+  " Quick toggles -- apply to ALL windows, not just the config panel
   elseif a ==# 'toggle_statusline'
     call neofinder#statusline#toggle()
   elseif a ==# 'toggle_preview'
     let g:neofinder.preview = !get(g:neofinder, 'preview', 1)
   elseif a ==# 'cycle_numbers'
-    if !&number
-      set number norelativenumber
-    elseif !&relativenumber
-      set number relativenumber
+    " Check state from a non-config window
+    let editor_num = s:get_editor_option('number')
+    let editor_rnum = s:get_editor_option('relativenumber')
+    if !editor_num
+      call s:apply_to_all_windows('number', 1)
+      call s:apply_to_all_windows('relativenumber', 0)
+    elseif !editor_rnum
+      call s:apply_to_all_windows('number', 1)
+      call s:apply_to_all_windows('relativenumber', 1)
     else
-      set nonumber norelativenumber
+      call s:apply_to_all_windows('number', 0)
+      call s:apply_to_all_windows('relativenumber', 0)
     endif
   elseif a ==# 'toggle_paste'
     set paste!
@@ -371,6 +379,32 @@ function! s:create_theme() abort
   let path = neofinder#theme#save(name, base)
   echo "\n  Saved: " . path
   sleep 600m
+endfunction
+
+" Get an option value from the first non-config editor window
+function! s:get_editor_option(opt) abort
+  for win in range(1, winnr('$'))
+    let bnr = winbufnr(win)
+    if bnr != s:config_bufnr && getbufvar(bnr, '&buftype') ==# ''
+      return getwinvar(win, '&' . a:opt)
+    endif
+  endfor
+  " Fallback: check global
+  return eval('&' . a:opt)
+endfunction
+
+" Apply a window-local option to ALL windows (not just the config panel)
+function! s:apply_to_all_windows(option, value) abort
+  let save_win = win_getid()
+  " Set the global default so new windows inherit it
+  execute 'set ' . a:option . (a:value ? '' : '!')
+  " Apply to every existing window
+  for win in range(1, winnr('$'))
+    execute win . 'wincmd w'
+    execute 'setlocal ' . (a:value ? '' : 'no') . a:option
+  endfor
+  " Return to config panel
+  call win_gotoid(save_win)
 endfunction
 
 function! s:reopen() abort
