@@ -76,7 +76,7 @@ command! -nargs=0 Nr   call neofinder#buffers#open_terminal()
 " Default mappings (override with g:neofinder.no_mappings = 1)
 " ---------------------------------------------------------------------------
 if !get(g:neofinder, 'no_mappings', 0)
-  nnoremap <silent> <Leader>n  :Neo<CR>
+  nnoremap <silent> <Leader>fp :Neo<CR>
   nnoremap <silent> <Leader>ff :Nf<CR>
   nnoremap <silent> <Leader>fc :Nc<CR>
   nnoremap <silent> <Leader>fl :Nl<CR>
