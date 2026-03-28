@@ -142,6 +142,13 @@ endfunction
 " ---------------------------------------------------------------------------
 " Palette dispatcher -- called by core when user accepts a palette item
 " ---------------------------------------------------------------------------
+" ---------------------------------------------------------------------------
+" Palette dispatcher -- called by actions.vim when user selects a palette item
+"
+" Source actions → open with nav stack (Backspace returns to palette)
+" Quick actions  → execute then auto-reopen palette so user stays in flow
+" Terminal/run   → execute and exit (user is now in terminal)
+" ---------------------------------------------------------------------------
 function! neofinder#palette_dispatch(selected) abort
   if !has_key(s:palette_actions, a:selected)
     return
@@ -150,22 +157,49 @@ function! neofinder#palette_dispatch(selected) abort
 
   if type ==# 'source'
     if arg ==# 'terminal'
+      " Terminal is a final destination, no return
       call neofinder#buffers#open_terminal()
     else
-      call neofinder#open(arg, '')
+      " Open source WITH nav stack → Backspace returns to palette
+      let items = neofinder#sources#gather(arg)
+      call neofinder#core#run_from_palette(arg, items, '')
     endif
-  elseif type ==# 'call'
-    execute 'call ' . arg
+
   elseif type ==# 'theme'
+    " Quick action: switch theme and reopen palette
     let g:neofinder.theme = arg
     call neofinder#theme#apply()
+    redraw
+    echohl NeoFinderPrompt
     echo '  Theme: ' . arg
+    echohl None
+    sleep 400m
+    call neofinder#palette('')
+
+  elseif type ==# 'call'
+    " Execute the call
+    execute 'call ' . arg
+    " Reopen palette for actions that don't open a new UI
+    " (tag, untag, statusline toggle, python list, etc.)
+    " But NOT for settings/help which open their own UI
+    if arg !~# 'config#open\|help()'
+      sleep 300m
+      call neofinder#palette('')
+    endif
+
   elseif type ==# 'python'
     call neofinder#python#exec(arg)
+    " Return to palette after python command
+    sleep 300m
+    call neofinder#palette('')
+
   elseif type ==# 'run'
     let cmd = input('Command: ')
     if cmd !=# ''
       call neofinder#buffers#open_terminal(cmd)
+    else
+      " User cancelled, return to palette
+      call neofinder#palette('')
     endif
   endif
 endfunction

@@ -105,7 +105,7 @@ endfunction
 " ---------------------------------------------------------------------------
 function! neofinder#preview#show(path, source) abort
   " Don't preview for non-file sources or help
-  if a:source ==# 'help' || a:source ==# 'services' || a:source ==# 'journal'
+  if a:source ==# 'help' || a:source ==# 'palette' || a:source ==# 'services' || a:source ==# 'journal'
     return
   endif
 

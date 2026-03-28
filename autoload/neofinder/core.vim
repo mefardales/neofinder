@@ -1,6 +1,9 @@
 " neofinder#core  -- fuzzy matching engine, buffer-based UI, multi-select
 "
 " Works on Vim 7.4+ (buffer-based), Vim 8+ (popup if available), Neovim.
+"
+" Navigation stack: when you enter a source from the palette, Backspace
+" on an empty query goes back to the palette.  Esc always closes fully.
 
 " ---------------------------------------------------------------------------
 " State
@@ -16,6 +19,9 @@ let s:state = {
       \ 'prevbuf':   -1,
       \ 'preview_bufnr': -1,
       \ }
+
+" Navigation history stack  (list of source names)
+let s:nav_stack = []
 
 " ---------------------------------------------------------------------------
 " Fuzzy match scoring
@@ -33,14 +39,12 @@ function! s:fuzzy_score(pattern, str) abort
   for si in range(len(str))
     if pi < len(pat) && str[si] ==# pat[pi]
       let score += 10
-      " Bonus for consecutive matches
       if last_match == si - 1
         let consecutive += 1
         let score += consecutive * 5
       else
         let consecutive = 0
       endif
-      " Bonus for match at word boundary
       if si == 0 || str[si - 1] =~# '[/_.\- ]'
         let score += 15
       endif
@@ -48,11 +52,9 @@ function! s:fuzzy_score(pattern, str) abort
       let pi += 1
     endif
   endfor
-  " All pattern chars must match
   if pi < len(pat)
     return -1
   endif
-  " Prefer shorter strings (tighter match)
   let score -= len(str) / 5
   return score
 endfunction
@@ -68,7 +70,6 @@ function! s:filter_items(items, query) abort
       call add(scored, [sc, item])
     endif
   endfor
-  " Sort descending by score
   call sort(scored, {a, b -> b[0] - a[0]})
   return map(scored, 'v:val[1]')
 endfunction
@@ -86,13 +87,21 @@ function! neofinder#core#run(source, items, query) abort
 
   call neofinder#theme#apply()
 
-  " Create the finder buffer
   call s:create_buffer()
   call s:refilter()
   call s:redraw()
 
-  " Start the input loop
   call s:input_loop()
+endfunction
+
+" ---------------------------------------------------------------------------
+" run_from_palette({source}, {items}, {query})
+"   Like run() but pushes 'palette' onto the nav stack so backspace returns.
+" ---------------------------------------------------------------------------
+function! neofinder#core#run_from_palette(source, items, query) abort
+  " Push 'palette' as parent so we can go back
+  call add(s:nav_stack, 'palette')
+  call neofinder#core#run(a:source, a:items, a:query)
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -101,7 +110,6 @@ endfunction
 function! s:create_buffer() abort
   let height = get(g:neofinder, 'height', 15)
 
-  " Close any previous neofinder buffer
   call s:cleanup()
 
   botright new
@@ -113,7 +121,6 @@ function! s:create_buffer() abort
   setlocal nocursorline nocursorcolumn
   setlocal filetype=neofinder
 
-  " Highlight groups for this buffer
   call neofinder#theme#set_buffer_highlights()
 endfunction
 
@@ -121,13 +128,28 @@ endfunction
 " Cleanup
 " ---------------------------------------------------------------------------
 function! s:cleanup() abort
-  " Close preview
   call neofinder#preview#close()
-  " Wipe finder buffer
   if s:state.bufnr > 0 && bufexists(s:state.bufnr)
     execute 'bwipeout! ' . s:state.bufnr
   endif
   let s:state.bufnr = -1
+endfunction
+
+" ---------------------------------------------------------------------------
+" Go back to parent in nav stack (returns 1 if navigated back, 0 if empty)
+" ---------------------------------------------------------------------------
+function! s:go_back() abort
+  if empty(s:nav_stack)
+    return 0
+  endif
+  let parent = remove(s:nav_stack, -1)
+  call s:cleanup()
+  if parent ==# 'palette'
+    call neofinder#palette('')
+  else
+    call neofinder#open(parent, '')
+  endif
+  return 1
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -166,11 +188,12 @@ function! s:redraw() abort
   let prompt = '  >> ' . s:state.query . '_'
   call setline(1, prompt)
 
-  " Status line
+  " Status line -- show navigation hints
   let backend = neofinder#backend()
-  let status = printf('  [%s] %d/%d  |  %s  |  multi:%d',
+  let nav_hint = !empty(s:nav_stack) ? '  [BS] back' : ''
+  let status = printf('  [%s] %d/%d  |  %s  |  multi:%d%s',
         \ toupper(s:state.source), matched, total, backend,
-        \ len(s:state.selected))
+        \ len(s:state.selected), nav_hint)
   call setline(2, status)
 
   " Item lines
@@ -191,11 +214,12 @@ function! s:redraw() abort
 
   setlocal nomodifiable
 
-  " Apply highlighting to rendered lines
   call s:highlight_lines(cur - start + 3)
 
-  " Update preview
-  if get(g:neofinder, 'preview', 1) && s:state.source !=# 'help'
+  " Update preview (skip for palette and help)
+  if get(g:neofinder, 'preview', 1)
+        \ && s:state.source !=# 'help'
+        \ && s:state.source !=# 'palette'
     if cur >= 0 && cur < matched
       call neofinder#preview#show(filtered[cur], s:state.source)
     endif
@@ -210,13 +234,9 @@ function! s:highlight_lines(cursor_line) abort
     return
   endif
   call clearmatches()
-  " Prompt
   call matchadd('NeoFinderPrompt', '\%1l')
-  " Status
   call matchadd('NeoFinderStatus', '\%2l')
-  " Selected items (marked with *)
   call matchadd('NeoFinderSelected', '^\s*>\?\s\+\*.*$')
-  " Cursor line
   if a:cursor_line >= 3
     call matchadd('NeoFinderCursor', '\%' . a:cursor_line . 'l')
   endif
@@ -231,15 +251,22 @@ function! s:input_loop() abort
     echo ''
     let c = getchar()
 
-    " Handle special keys
     if type(c) == type(0)
       let ch = nr2char(c)
     else
       let ch = c
     endif
 
-    " Escape / Ctrl-C → close
-    if c == 27 || c == 3
+    " Escape → always close everything (hard exit)
+    if c == 27
+      let s:nav_stack = []
+      call s:cleanup()
+      return
+    endif
+
+    " Ctrl-C → close (same as Esc)
+    if c == 3
+      let s:nav_stack = []
       call s:cleanup()
       return
     endif
@@ -280,8 +307,7 @@ function! s:input_loop() abort
       return
     endif
 
-    " Ctrl-H → ssh  (note: 8 is backspace in some terminals, so use Ctrl-H
-    " only when source is 'hosts')
+    " Ctrl-H → ssh (only when source is 'hosts')
     if c == 8 && s:state.source ==# 'hosts'
       call s:accept('ssh')
       return
@@ -290,9 +316,16 @@ function! s:input_loop() abort
     " Backspace (127 or special key)
     if c == 127 || c == "\<BS>"
       if len(s:state.query) > 0
+        " Normal backspace: delete last char
         let s:state.query = s:state.query[:-2]
         call s:refilter()
         call s:redraw()
+      else
+        " Empty query + backspace → go back to parent (or close)
+        if s:go_back()
+          return
+        endif
+        " No parent, do nothing (Esc to close)
       endif
       continue
     endif
@@ -324,7 +357,6 @@ function! s:input_loop() abort
         else
           let s:state.selected[item] = 1
         endif
-        " Move down after toggle
         if s:state.cursor < len(s:state.filtered) - 1
           let s:state.cursor += 1
         endif
@@ -342,14 +374,13 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-D → delete buffer (buffers source) or deselect all (other sources)
+    " Ctrl-D → delete buffer (buffers source) or deselect all
     if c == 4
       if s:state.source ==# 'buffers' && s:state.cursor < len(s:state.filtered)
         let item = s:state.filtered[s:state.cursor]
         let nr = neofinder#buffers#extract_bufnr(item)
         if nr > 0 && bufexists(nr)
           execute 'bwipeout ' . nr
-          " Refresh the buffer list
           let s:state.items = neofinder#sources#gather('buffers')
           call s:refilter()
         endif
@@ -360,23 +391,25 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Left Arrow → shrink preview (make finder wider)
+    " Left Arrow → shrink preview
     if ch ==# "\<Left>"
       call s:resize_preview(-8)
       continue
     endif
 
-    " Right Arrow → grow preview (make finder narrower)
+    " Right Arrow → grow preview
     if ch ==# "\<Right>"
       call s:resize_preview(8)
       continue
     endif
 
-    " F1 → open config panel (closes finder first)
+    " F1 → open config panel
     if ch ==# "\<F1>"
-      let source = s:state.source
       call s:cleanup()
       call neofinder#config#open()
+      " After config closes, return to palette
+      let s:nav_stack = []
+      call neofinder#palette('')
       return
     endif
 
@@ -399,7 +432,6 @@ function! s:resize_preview(delta) abort
   endif
   let pw = get(g:neofinder, 'preview_width', 60)
   let new_pw = pw + a:delta
-  " Clamp between 20 and 80% of screen width
   let max_pw = float2nr(&columns * 0.8)
   let min_pw = 20
   let new_pw = max([min_pw, min([new_pw, max_pw])])
@@ -407,11 +439,7 @@ function! s:resize_preview(delta) abort
     return
   endif
   let g:neofinder.preview_width = new_pw
-
-  " Resize the actual preview window if it exists
   call neofinder#preview#resize(new_pw)
-
-  " Show feedback
   let pct = float2nr(100.0 * new_pw / &columns)
   redraw
   echohl NeoFinderStatus
@@ -420,17 +448,16 @@ function! s:resize_preview(delta) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Accept the current selection
-" ---------------------------------------------------------------------------
-" ---------------------------------------------------------------------------
-" Public accessor for state (used by preview.vim)
+" Public accessor for state (used by preview.vim, actions.vim)
 " ---------------------------------------------------------------------------
 function! neofinder#core#state() abort
   return s:state
 endfunction
 
+" ---------------------------------------------------------------------------
+" Accept the current selection
+" ---------------------------------------------------------------------------
 function! s:accept(action) abort
-  " Gather targets: multi-select or single cursor item
   let targets = keys(s:state.selected)
   if empty(targets)
     if s:state.cursor >= 0 && s:state.cursor < len(s:state.filtered)
