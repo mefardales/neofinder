@@ -28,13 +28,13 @@ A modern, powerful fuzzy finder and sysadmin/hacker toolkit for Vim.
 ### vim-plug
 
 ```vim
-Plug 'yourusername/neofinder'
+Plug 'YOUR_USERNAME/neofinder'
 ```
 
 ### Vim 8+ native packages
 
 ```bash
-git clone https://github.com/yourusername/neofinder.git \
+git clone https://github.com/YOUR_USERNAME/neofinder.git \
     ~/.vim/pack/plugins/start/neofinder
 vim -c 'helptags ~/.vim/pack/plugins/start/neofinder/doc' -c q
 ```
@@ -42,14 +42,14 @@ vim -c 'helptags ~/.vim/pack/plugins/start/neofinder/doc' -c q
 ### Neovim
 
 ```bash
-git clone https://github.com/yourusername/neofinder.git \
+git clone https://github.com/YOUR_USERNAME/neofinder.git \
     ~/.local/share/nvim/site/pack/plugins/start/neofinder
 ```
 
 ### One-liner
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yourusername/neofinder/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/neofinder/main/install.sh | bash
 ```
 
 ## Commands

@@ -2,9 +2,10 @@
 # NeoFinder (Matrix Edition) -- one-click installer
 # Usage:  curl -fsSL <url>/install.sh | bash
 #     or: ./install.sh
+#
+# Set NEOFINDER_REPO to override the git clone URL.
 set -euo pipefail
 
-REPO="https://github.com/yourusername/neofinder.git"
 GREEN=$'\033[0;32m'
 BOLD=$'\033[1m'
 RESET=$'\033[0m'
@@ -22,6 +23,36 @@ banner() {
 
 banner
 
+# Resolve repo URL dynamically:
+#   1. NEOFINDER_REPO env var (explicit override)
+#   2. git remote of the script's own repo (when running ./install.sh locally)
+#   3. Fallback: prompt the user
+resolve_repo() {
+  if [ -n "${NEOFINDER_REPO:-}" ]; then
+    echo "${NEOFINDER_REPO}"
+    return
+  fi
+
+  # If this script lives inside a git repo, use its origin remote
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if git -C "${script_dir}" rev-parse --git-dir &>/dev/null; then
+    local url
+    url="$(git -C "${script_dir}" remote get-url origin 2>/dev/null || true)"
+    if [ -n "${url}" ]; then
+      echo "${url}"
+      return
+    fi
+  fi
+
+  echo >&2 "  Could not detect repository URL."
+  echo >&2 "  Set NEOFINDER_REPO and re-run, e.g.:"
+  echo >&2 "    NEOFINDER_REPO=https://github.com/YOU/neofinder.git bash install.sh"
+  exit 1
+}
+
+REPO="$(resolve_repo)"
+
 # Detect target directory
 if [ -d "${HOME}/.vim" ]; then
   TARGET="${HOME}/.vim/pack/plugins/start/neofinder"
@@ -32,6 +63,7 @@ else
 fi
 
 echo "${BOLD}Installing NeoFinder to:${RESET} ${TARGET}"
+echo "  Source: ${REPO}"
 
 if [ -d "${TARGET}" ]; then
   echo "  Updating existing installation..."

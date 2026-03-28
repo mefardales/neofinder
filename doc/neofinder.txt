@@ -38,14 +38,14 @@ ripgrep or fd when available, falling back to `find`.
 2. INSTALLATION                                     *neofinder-install*
 
 vim-plug: >
-    Plug 'yourusername/neofinder'
+    Plug 'YOUR_USERNAME/neofinder'
 <
 Vim 8 native packages: >
-    git clone https://github.com/yourusername/neofinder \
+    git clone https://github.com/YOUR_USERNAME/neofinder \
         ~/.vim/pack/plugins/start/neofinder
 <
 One-liner: >
-    curl -fsSL https://raw.githubusercontent.com/yourusername/neofinder/main/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/neofinder/main/install.sh | bash
 <
 
 ==============================================================================
