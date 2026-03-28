@@ -1,0 +1,149 @@
+*neofinder.txt*  Matrix Edition fuzzy finder & sysadmin toolkit
+
+                    _   _            _____ _           _~
+                   | \ | | ___  ___ |  ___(_)_ __   __| | ___ _ __~
+                   |  \| |/ _ \/ _ \| |_  | | '_ \ / _` |/ _ \ '__|~
+                   | |\  |  __/ (_) |  _| | | | | | (_| |  __/ |~
+                   |_| \_|\___|\___/|_|   |_|_| |_|\__,_|\___|_|~
+                                                    Matrix Edition~
+
+Author:  NeoFinder contributors
+License: MIT
+Version: 1.0.0
+
+==============================================================================
+CONTENTS                                            *neofinder-contents*
+
+    1. Introduction .............. |neofinder-intro|
+    2. Installation .............. |neofinder-install|
+    3. Commands .................. |neofinder-commands|
+    4. Key Bindings .............. |neofinder-keys|
+    5. Configuration ............. |neofinder-config|
+    6. Sources ................... |neofinder-sources|
+    7. Tagging ................... |neofinder-tags|
+    8. Backends .................. |neofinder-backends|
+
+==============================================================================
+1. INTRODUCTION                                     *neofinder-intro*
+
+NeoFinder (Matrix Edition) is a pure-Vimscript fuzzy finder and sysadmin
+toolkit.  It replaces and extends ctrlp.vim with specialized sources for
+config files, logs, systemd services, SSH hosts, Ansible playbooks, and
+a persistent tagging/bookmarking system.
+
+Zero external dependencies are required.  NeoFinder detects and uses
+ripgrep or fd when available, falling back to `find`.
+
+==============================================================================
+2. INSTALLATION                                     *neofinder-install*
+
+vim-plug: >
+    Plug 'yourusername/neofinder'
+<
+Vim 8 native packages: >
+    git clone https://github.com/yourusername/neofinder \
+        ~/.vim/pack/plugins/start/neofinder
+<
+One-liner: >
+    curl -fsSL https://raw.githubusercontent.com/yourusername/neofinder/main/install.sh | bash
+<
+
+==============================================================================
+3. COMMANDS                                         *neofinder-commands*
+
+*:NeoFinder*       Fuzzy file finder (from cwd)
+*:NeoConfigs*      Config files in /etc, ~/.config, etc.
+*:NeoLogs*         Browse /var/log files
+*:NeoServices*     Systemd unit files with actions
+*:NeoJournal*      Fuzzy search journalctl output
+*:NeoHosts*        SSH hosts from ~/.ssh/config and known_hosts
+*:NeoAnsible*      Ansible playbooks, inventories, roles
+*:NeoTags*         Show tagged/bookmarked files
+*:NeoTag*          Tag the current buffer's file
+*:NeoUntag*        Untag the current buffer's file
+*:NeoHelp*         Show all commands and keybindings
+
+==============================================================================
+4. KEY BINDINGS                                     *neofinder-keys*
+
+Default leader mappings (disable with g:neofinder.no_mappings): >
+
+    <Leader>ff    :NeoFinder
+    <Leader>fc    :NeoConfigs
+    <Leader>fl    :NeoLogs
+    <Leader>fs    :NeoServices
+    <Leader>fj    :NeoJournal
+    <Leader>fh    :NeoHosts
+    <Leader>fa    :NeoAnsible
+    <Leader>ft    :NeoTags
+    <Leader>fT    :NeoTag
+    <Leader>f?    :NeoHelp
+<
+Inside the finder window:
+
+    <CR>          Open file / execute default action
+    <C-v>         Open in vertical split
+    <C-x>         Open in horizontal split
+    <C-s>         Open with sudoedit
+    <C-t>         Tail -f (for logs)
+    <C-r>         systemctl restart (for services)
+    <C-h>         SSH connect (for hosts)
+    <Tab>         Toggle multi-select on current item
+    <C-a>         Select all visible items
+    <C-d>         Deselect all
+    <C-j>/<C-n>   Move cursor down
+    <C-k>/<C-p>   Move cursor up
+    <Esc>/<C-c>   Close finder
+
+==============================================================================
+5. CONFIGURATION                                    *neofinder-config*
+
+Set options via the |g:neofinder| dictionary: >
+
+    let g:neofinder = {
+        \ 'theme':        'matrix',
+        \ 'preview':      1,
+        \ 'preview_width': 60,
+        \ 'height':       15,
+        \ 'max_files':    50000,
+        \ 'no_mappings':  0,
+        \ 'ignore':       ['/proc', '/sys', '/dev', '.git'],
+        \ 'tag_file':     '~/.neofinder/tags',
+        \ 'config_paths': ['/etc', '~/.config'],
+        \ 'log_paths':    ['/var/log'],
+        \ 'ssh_config':   '~/.ssh/config',
+        \ 'known_hosts':  '~/.ssh/known_hosts',
+        \ }
+<
+
+==============================================================================
+6. SOURCES                                          *neofinder-sources*
+
+files       All files under cwd (respects ignore list)
+configs     System and user config files
+logs        Log files under /var/log
+services    systemd unit files
+journal     journalctl output (last 500 lines)
+hosts       SSH hosts from config + known_hosts
+ansible     Ansible YAML, INI, Jinja2 files
+tags        User-bookmarked files
+
+==============================================================================
+7. TAGGING                                          *neofinder-tags*
+
+Tags are stored in ~/.neofinder/tags (one path per line).
+Use |:NeoTag| and |:NeoUntag| to manage, |:NeoTags| to browse.
+
+==============================================================================
+8. BACKENDS                                         *neofinder-backends*
+
+NeoFinder auto-detects the fastest available file-listing backend:
+
+    1. ripgrep (rg)  -- fastest, respects .gitignore
+    2. fd             -- fast, respects .gitignore
+    3. find           -- universal fallback
+
+Run |:NeoHelp| to see which backend is active.
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:
