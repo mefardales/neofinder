@@ -297,8 +297,8 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-J / Ctrl-N → down
-    if c == 10 || c == 14
+    " Down: Ctrl-J / Ctrl-N / Arrow Down
+    if c == 10 || c == 14 || ch ==# "\<Down>"
       if s:state.cursor < len(s:state.filtered) - 1
         let s:state.cursor += 1
       endif
@@ -306,8 +306,8 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-K / Ctrl-P → up
-    if c == 11 || c == 16
+    " Up: Ctrl-K / Ctrl-P / Arrow Up
+    if c == 11 || c == 16 || ch ==# "\<Up>"
       if s:state.cursor > 0
         let s:state.cursor -= 1
       endif
