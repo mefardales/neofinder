@@ -1,26 +1,18 @@
 " neofinder#config  -- Settings panel & configuration interface
 "
-" Provides an interactive config menu triggered by :NeoConfig or <F1> inside
-" the finder.  Supports theme switching, statusline toggle, preview toggle,
-" and custom theme creation.
-"
-" Works on Vim 8+ and Neovim (buffer-based panel, no popups required).
+" Provides an interactive config menu triggered by :NeoConfig or <F1>.
+" Supports theme switching (affects ALL of Vim), statusline toggle,
+" preview toggle, and custom theme creation.
 
-" ---------------------------------------------------------------------------
-" State for the config panel
-" ---------------------------------------------------------------------------
 let s:config_bufnr = -1
 let s:config_winid = -1
 let s:config_cursor = 0
-
-" Menu items -- each is [label, action_function_name]
 let s:menu_items = []
 
 " ---------------------------------------------------------------------------
-" open() -- launch the config panel (standalone or from within finder)
+" open()
 " ---------------------------------------------------------------------------
 function! neofinder#config#open() abort
-  " Build menu items dynamically
   call s:build_menu()
   call s:create_panel()
   call s:render_panel()
@@ -28,20 +20,38 @@ function! neofinder#config#open() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Build the menu items list
+" Build the menu
 " ---------------------------------------------------------------------------
 function! s:build_menu() abort
   let s:config_cursor = 0
   let s:menu_items = []
 
-  " Section: Display
-  call add(s:menu_items, {'label': '--- DISPLAY ---', 'type': 'header'})
+  " -- EDITOR --
+  call add(s:menu_items, {'label': '--- EDITOR (global) ---', 'type': 'header'})
 
-  let sl = &laststatus
+  let sl_active = &statusline =~# 'neofinder#statusline'
   call add(s:menu_items, {
-        \ 'label': printf('  Statusline (laststatus):  %s',
-        \   sl == 2 ? 'ON (always)' : sl == 1 ? 'ON (split)' : 'OFF'),
+        \ 'label': printf('  NeoFinder Statusline:  %s', sl_active ? 'ON' : 'OFF'),
         \ 'type': 'action', 'action': 'toggle_statusline'})
+
+  let ls = &laststatus
+  call add(s:menu_items, {
+        \ 'label': printf('  laststatus:  %d (%s)',
+        \   ls, ls == 2 ? 'always' : ls == 1 ? 'on split' : 'never'),
+        \ 'type': 'action', 'action': 'cycle_laststatus'})
+
+  call add(s:menu_items, {
+        \ 'label': printf('  Line numbers:  %s',
+        \   &number ? 'ON' . (&relativenumber ? ' (relative)' : '') : 'OFF'),
+        \ 'type': 'action', 'action': 'toggle_numbers'})
+
+  call add(s:menu_items, {
+        \ 'label': printf('  Cursor line highlight:  %s', &cursorline ? 'ON' : 'OFF'),
+        \ 'type': 'action', 'action': 'toggle_cursorline'})
+
+  " -- FINDER --
+  call add(s:menu_items, {'label': '', 'type': 'separator'})
+  call add(s:menu_items, {'label': '--- NEOFINDER UI ---', 'type': 'header'})
 
   let pv = get(g:neofinder, 'preview', 1)
   call add(s:menu_items, {
@@ -56,20 +66,18 @@ function! s:build_menu() abort
         \ 'label': printf('  Finder height:  %d lines', get(g:neofinder, 'height', 15)),
         \ 'type': 'action', 'action': 'change_height'})
 
-  " Section: Themes
+  " -- THEMES --
   call add(s:menu_items, {'label': '', 'type': 'separator'})
-  call add(s:menu_items, {'label': '--- THEMES ---', 'type': 'header'})
+  call add(s:menu_items, {'label': '--- THEMES (editor + finder + statusline) ---', 'type': 'header'})
 
   let current_theme = get(g:neofinder, 'theme', 'matrix')
-  let themes = neofinder#theme#list()
-  for t in themes
-    let marker = (t ==# current_theme) ? ' *' : '  '
+  for t in neofinder#theme#list()
+    let marker = (t ==# current_theme) ? '  *' : ''
     call add(s:menu_items, {
           \ 'label': printf('  %s%s', t, marker),
           \ 'type': 'action', 'action': 'switch_theme', 'value': t})
   endfor
 
-  " Section: Custom themes
   call add(s:menu_items, {'label': '', 'type': 'separator'})
   call add(s:menu_items, {
         \ 'label': '  + Create custom theme from current...',
@@ -78,7 +86,7 @@ function! s:build_menu() abort
         \ 'label': '  + Edit custom theme file...',
         \ 'type': 'action', 'action': 'edit_theme'})
 
-  " Section: Info
+  " -- INFO --
   call add(s:menu_items, {'label': '', 'type': 'separator'})
   call add(s:menu_items, {'label': '--- INFO ---', 'type': 'header'})
   call add(s:menu_items, {
@@ -93,29 +101,21 @@ function! s:build_menu() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Create the panel buffer
+" Panel buffer
 " ---------------------------------------------------------------------------
 function! s:create_panel() abort
   call s:close_panel()
   botright new
   let s:config_bufnr = bufnr('%')
   let s:config_winid = win_getid()
-
-  let panel_height = len(s:menu_items) + 4
-  execute 'resize ' . min([panel_height, 25])
-
+  execute 'resize ' . min([len(s:menu_items) + 4, 30])
   setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
   setlocal nowrap nonumber norelativenumber nospell
   setlocal nocursorline nocursorcolumn
   setlocal filetype=neofinder-config
-
-  call neofinder#theme#apply()
   call neofinder#theme#set_buffer_highlights()
 endfunction
 
-" ---------------------------------------------------------------------------
-" Close the panel
-" ---------------------------------------------------------------------------
 function! s:close_panel() abort
   if s:config_bufnr > 0 && bufexists(s:config_bufnr)
     execute 'bwipeout! ' . s:config_bufnr
@@ -125,17 +125,13 @@ function! s:close_panel() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Render the panel contents
+" Render
 " ---------------------------------------------------------------------------
 function! s:render_panel() abort
   if s:config_bufnr < 0 || !bufexists(s:config_bufnr)
     return
   endif
-  let winid = bufwinid(s:config_bufnr)
-  if winid < 0
-    return
-  endif
-  call win_gotoid(winid)
+  call win_gotoid(bufwinid(s:config_bufnr))
 
   setlocal modifiable
   silent! %delete _
@@ -146,11 +142,10 @@ function! s:render_panel() abort
   let lnum = 3
   for i in range(len(s:menu_items))
     let item = s:menu_items[i]
-    let pointer = ''
-    if item.type ==# 'action' && i == s:config_cursor
-      let pointer = '> '
-    elseif item.type ==# 'action'
-      let pointer = '  '
+    if item.type ==# 'action'
+      let pointer = (i == s:config_cursor) ? '> ' : '  '
+    else
+      let pointer = ''
     endif
     call setline(lnum, pointer . item.label)
     let lnum += 1
@@ -158,35 +153,23 @@ function! s:render_panel() abort
 
   setlocal nomodifiable
 
-  " Highlighting
   call clearmatches()
   call matchadd('NeoFinderPrompt', '\%1l')
   call matchadd('NeoFinderBorder', '\%2l')
-  " Headers
   call matchadd('NeoFinderStatus', '^--- .\+ ---$')
-  " Active theme marker
-  call matchadd('NeoFinderSelected', ' \*$')
-  " Cursor line
-  let cursor_lnum = s:cursor_to_lnum()
-  if cursor_lnum > 0
-    call matchadd('NeoFinderCursor', '\%' . cursor_lnum . 'l')
+  call matchadd('NeoFinderSelected', '  \*$')
+  let cl = s:config_cursor + 3
+  if cl >= 3
+    call matchadd('NeoFinderCursor', '\%' . cl . 'l')
   endif
 endfunction
 
 " ---------------------------------------------------------------------------
-" Map config_cursor to a buffer line number
-" ---------------------------------------------------------------------------
-function! s:cursor_to_lnum() abort
-  return s:config_cursor + 3  " +3 for title + separator lines
-endfunction
-
-" ---------------------------------------------------------------------------
-" Move cursor to next/prev actionable item
+" Navigation
 " ---------------------------------------------------------------------------
 function! s:move_cursor(dir) abort
-  let n = len(s:menu_items)
   let pos = s:config_cursor + a:dir
-  while pos >= 0 && pos < n
+  while pos >= 0 && pos < len(s:menu_items)
     if s:menu_items[pos].type ==# 'action'
       let s:config_cursor = pos
       return
@@ -195,7 +178,6 @@ function! s:move_cursor(dir) abort
   endwhile
 endfunction
 
-" Ensure cursor starts on an actionable item
 function! s:snap_cursor() abort
   if s:config_cursor < len(s:menu_items) && s:menu_items[s:config_cursor].type ==# 'action'
     return
@@ -204,7 +186,7 @@ function! s:snap_cursor() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Panel input loop
+" Input loop
 " ---------------------------------------------------------------------------
 function! s:panel_loop() abort
   call s:snap_cursor()
@@ -214,11 +196,7 @@ function! s:panel_loop() abort
     redraw
     echo ''
     let c = getchar()
-    if type(c) == type(0)
-      let ch = nr2char(c)
-    else
-      let ch = c
-    endif
+    let ch = type(c) == type(0) ? nr2char(c) : c
 
     " Quit
     if c == 27 || c == 3 || ch ==# 'q'
@@ -226,10 +204,9 @@ function! s:panel_loop() abort
       return
     endif
 
-    " Enter → execute action
+    " Enter
     if c == 13
       call s:execute_action()
-      " Rebuild and re-render after action
       call s:build_menu()
       call s:snap_cursor()
       call s:render_panel()
@@ -253,49 +230,59 @@ function! s:panel_loop() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" Execute the action under cursor
+" Execute action
 " ---------------------------------------------------------------------------
 function! s:execute_action() abort
   let item = s:menu_items[s:config_cursor]
   if item.type !=# 'action'
     return
   endif
-
   let action = item.action
 
   if action ==# 'toggle_statusline'
-    call s:toggle_statusline()
+    call neofinder#statusline#toggle()
+
+  elseif action ==# 'cycle_laststatus'
+    " Cycle: 0 → 1 → 2 → 0
+    let &laststatus = (&laststatus + 1) % 3
+
+  elseif action ==# 'toggle_numbers'
+    if &number && &relativenumber
+      set norelativenumber
+    elseif &number
+      set nonumber
+    else
+      set number
+    endif
+
+  elseif action ==# 'toggle_cursorline'
+    set cursorline!
+
   elseif action ==# 'toggle_preview'
     let g:neofinder.preview = !get(g:neofinder, 'preview', 1)
+
   elseif action ==# 'change_preview_width'
     call s:prompt_number('preview_width', 'Preview width (columns)', 20, 120)
+
   elseif action ==# 'change_height'
     call s:prompt_number('height', 'Finder height (lines)', 5, 40)
+
   elseif action ==# 'switch_theme'
     let g:neofinder.theme = item.value
     call neofinder#theme#apply()
-    " Re-apply to current panel
+    " Re-apply panel highlights after global theme change
     call neofinder#theme#set_buffer_highlights()
+
   elseif action ==# 'create_theme'
     call s:create_custom_theme()
+
   elseif action ==# 'edit_theme'
     call s:edit_custom_theme()
   endif
 endfunction
 
 " ---------------------------------------------------------------------------
-" Toggle statusline (laststatus 0 → 2 → 0)
-" ---------------------------------------------------------------------------
-function! s:toggle_statusline() abort
-  if &laststatus == 0
-    set laststatus=2
-  else
-    set laststatus=0
-  endif
-endfunction
-
-" ---------------------------------------------------------------------------
-" Prompt for a numeric value
+" Helpers
 " ---------------------------------------------------------------------------
 function! s:prompt_number(key, label, min, max) abort
   call s:close_panel()
@@ -307,16 +294,12 @@ function! s:prompt_number(key, label, min, max) abort
       let g:neofinder[a:key] = num
     endif
   endif
-  " Re-open panel
   call s:build_menu()
   call s:create_panel()
   call s:snap_cursor()
   call s:render_panel()
 endfunction
 
-" ---------------------------------------------------------------------------
-" Create a custom theme from the current theme
-" ---------------------------------------------------------------------------
 function! s:create_custom_theme() abort
   call s:close_panel()
   let name = input('New theme name: ')
@@ -324,19 +307,15 @@ function! s:create_custom_theme() abort
     echo "\n  Invalid name (use letters, digits, - and _ only)"
     return
   endif
-  " Copy current theme as base
   let current = get(g:neofinder, 'theme', 'matrix')
   let base = deepcopy(neofinder#theme#get(current))
   let path = neofinder#theme#save(name, base)
   echohl NeoFinderPrompt
   echo printf("\n  Theme '%s' saved to %s", name, path)
-  echo '  Edit the file to customize colors, then use :NeoConfig to switch.'
+  echo '  Edit the file to customize, then :NeoConfig to switch.'
   echohl None
 endfunction
 
-" ---------------------------------------------------------------------------
-" Open a custom theme file for editing
-" ---------------------------------------------------------------------------
 function! s:edit_custom_theme() abort
   let dir = expand('~/.neofinder/themes')
   if !isdirectory(dir)
@@ -349,7 +328,6 @@ function! s:edit_custom_theme() abort
     return
   endif
   call s:close_panel()
-  " List theme files and let user pick
   echo '  Custom themes:'
   let idx = 0
   for f in files
@@ -362,10 +340,6 @@ function! s:edit_custom_theme() abort
   endif
 endfunction
 
-" ---------------------------------------------------------------------------
-" open_from_finder() -- called when <F1> is pressed inside the finder
-"   Closes finder, opens config, reopens finder after config closes.
-" ---------------------------------------------------------------------------
 function! neofinder#config#open_from_finder(source) abort
   call neofinder#config#open()
 endfunction

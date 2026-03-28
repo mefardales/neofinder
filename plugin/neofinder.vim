@@ -20,6 +20,8 @@ let s:defaults = {
       \            '__pycache__', '.cache', '/lost+found'],
       \ 'max_files': 50000,
       \ 'theme': 'matrix',
+      \ 'statusline': 1,
+      \ 'ascii_statusline': 0,
       \ 'preview': 1,
       \ 'preview_width': 60,
       \ 'height': 15,
@@ -64,7 +66,9 @@ command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupAdd
 command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupRemove call neofinder#buffers#remove_from_group(<q-args>)
 command! -nargs=0 NeoTerminal    call neofinder#buffers#open_terminal()
 command! -nargs=+ NeoRun         call neofinder#buffers#open_terminal(<q-args>)
-command! -nargs=0 NeoConfig   call neofinder#config#open()
+command! -nargs=0 NeoConfig       call neofinder#config#open()
+command! -nargs=? NeoTheme        call neofinder#theme#switch(<q-args>)
+command! -nargs=0 NeoStatusToggle call neofinder#statusline#toggle()
 command! -nargs=1 -complete=customlist,neofinder#python#complete NeoPythonExec call neofinder#python#exec(<q-args>)
 command! -nargs=0 NeoPythonList call neofinder#python#show_list()
 command! -nargs=+ NeoPythonBind call s:python_bind(<f-args>)
@@ -112,6 +116,17 @@ if has('python3')
     autocmd VimEnter * call neofinder#python#autoload()
   augroup END
 endif
+
+" ---------------------------------------------------------------------------
+" Apply theme globally on startup (editor + statusline + finder highlights)
+" ---------------------------------------------------------------------------
+augroup NeoFinderThemeStartup
+  autocmd!
+  autocmd VimEnter,ColorScheme * call neofinder#theme#apply()
+augroup END
+
+" Apply immediately for current session
+call neofinder#theme#apply()
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
