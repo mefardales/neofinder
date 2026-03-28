@@ -1,17 +1,13 @@
-" neofinder#config  -- Settings panel & configuration interface
+" neofinder#config  -- Quick settings panel for sysadmins
 "
-" Provides an interactive config menu triggered by :NeoConfig or <F1>.
-" Supports theme switching (affects ALL of Vim), statusline toggle,
-" preview toggle, and custom theme creation.
+" Only things you'd actually change mid-session on a remote server.
+" Everything else belongs in your .vimrc.
 
 let s:config_bufnr = -1
 let s:config_winid = -1
 let s:config_cursor = 0
 let s:menu_items = []
 
-" ---------------------------------------------------------------------------
-" open()
-" ---------------------------------------------------------------------------
 function! neofinder#config#open() abort
   call s:build_menu()
   call s:create_panel()
@@ -19,100 +15,139 @@ function! neofinder#config#open() abort
   call s:panel_loop()
 endfunction
 
-" ---------------------------------------------------------------------------
-" Build the menu
-" ---------------------------------------------------------------------------
+" ===========================================================================
+" Menu -- only stuff that matters in the field
+" ===========================================================================
 function! s:build_menu() abort
   let s:config_cursor = 0
   let s:menu_items = []
 
-  " -- EDITOR --
-  call add(s:menu_items, {'label': '--- EDITOR (global) ---', 'type': 'header'})
-
-  let sl_active = &statusline =~# 'neofinder#statusline'
-  call add(s:menu_items, {
-        \ 'label': printf('  NeoFinder Statusline:  %s', sl_active ? 'ON' : 'OFF'),
-        \ 'type': 'action', 'action': 'toggle_statusline'})
-
-  let ls = &laststatus
-  call add(s:menu_items, {
-        \ 'label': printf('  laststatus:  %d (%s)',
-        \   ls, ls == 2 ? 'always' : ls == 1 ? 'on split' : 'never'),
-        \ 'type': 'action', 'action': 'cycle_laststatus'})
-
-  call add(s:menu_items, {
-        \ 'label': printf('  Line numbers:  %s',
-        \   &number ? 'ON' . (&relativenumber ? ' (relative)' : '') : 'OFF'),
-        \ 'type': 'action', 'action': 'toggle_numbers'})
-
-  call add(s:menu_items, {
-        \ 'label': printf('  Cursor line highlight:  %s', &cursorline ? 'ON' : 'OFF'),
-        \ 'type': 'action', 'action': 'toggle_cursorline'})
-
-  " -- FINDER --
-  call add(s:menu_items, {'label': '', 'type': 'separator'})
-  call add(s:menu_items, {'label': '--- NEOFINDER UI ---', 'type': 'header'})
-
-  let pv = get(g:neofinder, 'preview', 1)
-  call add(s:menu_items, {
-        \ 'label': printf('  Preview pane:  %s', pv ? 'ON' : 'OFF'),
-        \ 'type': 'action', 'action': 'toggle_preview'})
-
-  call add(s:menu_items, {
-        \ 'label': printf('  Preview width:  %d columns', get(g:neofinder, 'preview_width', 60)),
-        \ 'type': 'action', 'action': 'change_preview_width'})
-
-  call add(s:menu_items, {
-        \ 'label': printf('  Finder height:  %d lines', get(g:neofinder, 'height', 15)),
-        \ 'type': 'action', 'action': 'change_height'})
-
-  " -- THEMES --
-  call add(s:menu_items, {'label': '', 'type': 'separator'})
-  call add(s:menu_items, {'label': '--- THEMES (editor + finder + statusline) ---', 'type': 'header'})
-
-  let current_theme = get(g:neofinder, 'theme', 'matrix')
+  " -- THEME --
+  call s:header('THEME')
+  let current = get(g:neofinder, 'theme', 'matrix')
   for t in neofinder#theme#list()
-    let marker = (t ==# current_theme) ? '  *' : ''
+    let m = (t ==# current) ? '  *' : ''
     call add(s:menu_items, {
-          \ 'label': printf('  %s%s', t, marker),
+          \ 'label': printf('  %s%s', t, m),
           \ 'type': 'action', 'action': 'switch_theme', 'value': t})
   endfor
-
   call add(s:menu_items, {'label': '', 'type': 'separator'})
   call add(s:menu_items, {
-        \ 'label': '  + Create custom theme from current...',
+        \ 'label': '  + Create custom theme...',
         \ 'type': 'action', 'action': 'create_theme'})
-  call add(s:menu_items, {
-        \ 'label': '  + Edit custom theme file...',
-        \ 'type': 'action', 'action': 'edit_theme'})
+
+  " -- PATHS (the stuff that changes per server) --
+  call s:header('SEARCH PATHS')
+  call s:item('Config paths',
+        \ s:short_list(get(g:neofinder, 'config_paths', [])),
+        \ 'edit_config_paths')
+  call s:item('Log paths',
+        \ s:short_list(get(g:neofinder, 'log_paths', [])),
+        \ 'edit_log_paths')
+  call s:item('Ansible paths',
+        \ s:short_list(get(g:neofinder, 'ansible_paths', [])),
+        \ 'edit_ansible_paths')
+  call s:item('Ignore patterns',
+        \ string(len(get(g:neofinder, 'ignore', []))) . ' rules',
+        \ 'edit_ignore')
+  call s:item('SSH config',
+        \ get(g:neofinder, 'ssh_config', '~/.ssh/config'),
+        \ 'set_ssh_config')
+
+  " -- PYTHON PLUGINS --
+  if has('python3')
+    call s:header('PYTHON PLUGINS')
+    let pycount = len(neofinder#python#list())
+    call s:item('Loaded',
+          \ pycount . ' commands',
+          \ 'list_python')
+    call s:item('Reload',
+          \ '~/.neofinder/python/',
+          \ 'reload_python')
+  endif
+
+  " -- QUICK TOGGLES (stuff you might flip mid-session) --
+  call s:header('QUICK TOGGLES')
+  call s:item('Statusline',
+        \ &statusline =~# 'neofinder#statusline' ? 'ON' : 'OFF',
+        \ 'toggle_statusline')
+  call s:item('Preview pane',
+        \ get(g:neofinder, 'preview', 1) ? 'ON' : 'OFF',
+        \ 'toggle_preview')
+  call s:item('Line numbers',
+        \ &number ? (&relativenumber ? 'relative' : 'ON') : 'OFF',
+        \ 'cycle_numbers')
+  call s:item('Paste mode',
+        \ &paste ? 'ON' : 'OFF',
+        \ 'toggle_paste')
 
   " -- INFO --
+  call s:header('SYSTEM')
+  call s:info('Backend', neofinder#backend())
+  call s:info('Vim', v:version . (has('nvim') ? ' (nvim)' : ''))
+  call s:info('Python3', has('python3') ? 'yes' : 'no')
+  call s:info('OS', s:detect_os())
+endfunction
+
+" ===========================================================================
+" Menu builder helpers
+" ===========================================================================
+function! s:header(t) abort
   call add(s:menu_items, {'label': '', 'type': 'separator'})
-  call add(s:menu_items, {'label': '--- INFO ---', 'type': 'header'})
+  call add(s:menu_items, {'label': '--- ' . a:t . ' ---', 'type': 'header'})
+endfunction
+
+function! s:item(label, val, action) abort
   call add(s:menu_items, {
-        \ 'label': printf('  Backend:  %s', neofinder#backend()),
-        \ 'type': 'info'})
+        \ 'label': printf('  %-22s %s', a:label, a:val),
+        \ 'type': 'action', 'action': a:action})
+endfunction
+
+function! s:info(label, val) abort
   call add(s:menu_items, {
-        \ 'label': printf('  Max files:  %d', get(g:neofinder, 'max_files', 50000)),
-        \ 'type': 'info'})
-  call add(s:menu_items, {
-        \ 'label': printf('  Theme dir:  %s', expand('~/.neofinder/themes/')),
+        \ 'label': printf('  %-22s %s', a:label, a:val),
         \ 'type': 'info'})
 endfunction
 
-" ---------------------------------------------------------------------------
+function! s:short_list(paths) abort
+  if empty(a:paths) | return '(none)' | endif
+  let home = expand('~')
+  let out = []
+  for p in a:paths[:1]
+    call add(out, substitute(p, '^' . home, '~', ''))
+  endfor
+  let r = join(out, ', ')
+  if len(a:paths) > 2
+    let r .= ' (+' . (len(a:paths) - 2) . ')'
+  endif
+  return r
+endfunction
+
+function! s:detect_os() abort
+  if has('mac') | return 'macOS' | endif
+  if has('win32') | return 'Windows' | endif
+  if filereadable('/etc/os-release')
+    for line in readfile('/etc/os-release', '', 5)
+      if line =~# '^PRETTY_NAME='
+        return matchstr(line, '"\zs[^"]*')
+      endif
+    endfor
+  endif
+  return 'Linux'
+endfunction
+
+" ===========================================================================
 " Panel buffer
-" ---------------------------------------------------------------------------
+" ===========================================================================
 function! s:create_panel() abort
   call s:close_panel()
   botright new
   let s:config_bufnr = bufnr('%')
   let s:config_winid = win_getid()
-  execute 'resize ' . min([len(s:menu_items) + 4, 30])
+  execute 'resize ' . min([len(s:menu_items) + 4, 28])
   setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
   setlocal nowrap nonumber norelativenumber nospell
-  setlocal nocursorline nocursorcolumn
-  setlocal filetype=neofinder-config
+  setlocal nocursorline nocursorcolumn filetype=neofinder-config
   call neofinder#theme#set_buffer_highlights()
 endfunction
 
@@ -124,35 +159,27 @@ function! s:close_panel() abort
   let s:config_winid = -1
 endfunction
 
-" ---------------------------------------------------------------------------
+" ===========================================================================
 " Render
-" ---------------------------------------------------------------------------
+" ===========================================================================
 function! s:render_panel() abort
-  if s:config_bufnr < 0 || !bufexists(s:config_bufnr)
-    return
-  endif
+  if s:config_bufnr < 0 || !bufexists(s:config_bufnr) | return | endif
   call win_gotoid(bufwinid(s:config_bufnr))
-
   setlocal modifiable
   silent! %delete _
 
-  call setline(1, '  NeoFinder Settings                    [q/Esc] close  [Enter] select')
-  call setline(2, repeat('=', 72))
+  call setline(1, '  Settings          [q] close  [Enter] toggle  [j/k] move')
+  call setline(2, repeat('-', 62))
 
   let lnum = 3
   for i in range(len(s:menu_items))
     let item = s:menu_items[i]
-    if item.type ==# 'action'
-      let pointer = (i == s:config_cursor) ? '> ' : '  '
-    else
-      let pointer = ''
-    endif
-    call setline(lnum, pointer . item.label)
+    let ptr = item.type ==# 'action' ? (i == s:config_cursor ? '> ' : '  ') : ''
+    call setline(lnum, ptr . item.label)
     let lnum += 1
   endfor
 
   setlocal nomodifiable
-
   call clearmatches()
   call matchadd('NeoFinderPrompt', '\%1l')
   call matchadd('NeoFinderBorder', '\%2l')
@@ -164,9 +191,9 @@ function! s:render_panel() abort
   endif
 endfunction
 
-" ---------------------------------------------------------------------------
+" ===========================================================================
 " Navigation
-" ---------------------------------------------------------------------------
+" ===========================================================================
 function! s:move_cursor(dir) abort
   let pos = s:config_cursor + a:dir
   while pos >= 0 && pos < len(s:menu_items)
@@ -185,42 +212,36 @@ function! s:snap_cursor() abort
   call s:move_cursor(1)
 endfunction
 
-" ---------------------------------------------------------------------------
+" ===========================================================================
 " Input loop
-" ---------------------------------------------------------------------------
+" ===========================================================================
 function! s:panel_loop() abort
   call s:snap_cursor()
   call s:render_panel()
-
   while 1
     redraw
     echo ''
     let c = getchar()
     let ch = type(c) == type(0) ? nr2char(c) : c
 
-    " Quit
     if c == 27 || c == 3 || ch ==# 'q'
       call s:close_panel()
       return
     endif
-
-    " Enter
     if c == 13
+      let save = s:config_cursor
       call s:execute_action()
       call s:build_menu()
+      let s:config_cursor = min([save, len(s:menu_items) - 1])
       call s:snap_cursor()
       call s:render_panel()
       continue
     endif
-
-    " Down
     if c == 10 || c == 14 || ch ==# "\<Down>" || ch ==# 'j'
       call s:move_cursor(1)
       call s:render_panel()
       continue
     endif
-
-    " Up
     if c == 11 || c == 16 || ch ==# "\<Up>" || ch ==# 'k'
       call s:move_cursor(-1)
       call s:render_panel()
@@ -229,115 +250,134 @@ function! s:panel_loop() abort
   endwhile
 endfunction
 
-" ---------------------------------------------------------------------------
-" Execute action
-" ---------------------------------------------------------------------------
+" ===========================================================================
+" Actions
+" ===========================================================================
 function! s:execute_action() abort
   let item = s:menu_items[s:config_cursor]
-  if item.type !=# 'action'
-    return
-  endif
-  let action = item.action
+  if item.type !=# 'action' | return | endif
+  let a = item.action
 
-  if action ==# 'toggle_statusline'
-    call neofinder#statusline#toggle()
-
-  elseif action ==# 'cycle_laststatus'
-    " Cycle: 0 → 1 → 2 → 0
-    let &laststatus = (&laststatus + 1) % 3
-
-  elseif action ==# 'toggle_numbers'
-    if &number && &relativenumber
-      set norelativenumber
-    elseif &number
-      set nonumber
-    else
-      set number
-    endif
-
-  elseif action ==# 'toggle_cursorline'
-    set cursorline!
-
-  elseif action ==# 'toggle_preview'
-    let g:neofinder.preview = !get(g:neofinder, 'preview', 1)
-
-  elseif action ==# 'change_preview_width'
-    call s:prompt_number('preview_width', 'Preview width (columns)', 20, 120)
-
-  elseif action ==# 'change_height'
-    call s:prompt_number('height', 'Finder height (lines)', 5, 40)
-
-  elseif action ==# 'switch_theme'
+  " Theme
+  if a ==# 'switch_theme'
     let g:neofinder.theme = item.value
     call neofinder#theme#apply()
-    " Re-apply panel highlights after global theme change
     call neofinder#theme#set_buffer_highlights()
+  elseif a ==# 'create_theme'
+    call s:create_theme()
 
-  elseif action ==# 'create_theme'
-    call s:create_custom_theme()
+  " Paths
+  elseif a ==# 'edit_config_paths'
+    call s:edit_paths('config_paths', 'Config paths')
+  elseif a ==# 'edit_log_paths'
+    call s:edit_paths('log_paths', 'Log paths')
+  elseif a ==# 'edit_ansible_paths'
+    call s:edit_paths('ansible_paths', 'Ansible paths')
+  elseif a ==# 'edit_ignore'
+    call s:edit_paths('ignore', 'Ignore patterns')
+  elseif a ==# 'set_ssh_config'
+    call s:prompt_str('ssh_config', 'SSH config')
 
-  elseif action ==# 'edit_theme'
-    call s:edit_custom_theme()
+  " Python
+  elseif a ==# 'list_python'
+    call s:close_panel()
+    call neofinder#python#show_list()
+    call input('[Enter]')
+    call s:reopen()
+  elseif a ==# 'reload_python'
+    call neofinder#python#autoload()
+
+  " Quick toggles
+  elseif a ==# 'toggle_statusline'
+    call neofinder#statusline#toggle()
+  elseif a ==# 'toggle_preview'
+    let g:neofinder.preview = !get(g:neofinder, 'preview', 1)
+  elseif a ==# 'cycle_numbers'
+    if !&number
+      set number norelativenumber
+    elseif !&relativenumber
+      set number relativenumber
+    else
+      set nonumber norelativenumber
+    endif
+  elseif a ==# 'toggle_paste'
+    set paste!
   endif
 endfunction
 
-" ---------------------------------------------------------------------------
+" ===========================================================================
 " Helpers
-" ---------------------------------------------------------------------------
-function! s:prompt_number(key, label, min, max) abort
-  call s:close_panel()
-  let current = get(g:neofinder, a:key, a:min)
-  let val = input(printf('%s [%d-%d] (current: %d): ', a:label, a:min, a:max, current))
-  if val =~# '^\d\+$'
-    let num = str2nr(val)
-    if num >= a:min && num <= a:max
-      let g:neofinder[a:key] = num
-    endif
+" ===========================================================================
+function! s:prompt_str(key, label) abort
+  let cur = get(g:neofinder, a:key, '')
+  call inputsave()
+  let val = input(a:label . ': ', cur, 'file')
+  call inputrestore()
+  if val !=# ''
+    let g:neofinder[a:key] = expand(val)
   endif
+endfunction
+
+function! s:edit_paths(key, label) abort
+  call s:close_panel()
+  let paths = copy(get(g:neofinder, a:key, []))
+  let home = expand('~')
+
+  while 1
+    redraw
+    echo '  ' . a:label . ':'
+    let idx = 0
+    for p in paths
+      let idx += 1
+      echo printf('  %d) %s', idx, substitute(p, '^' . home, '~', ''))
+    endfor
+    if empty(paths) | echo '  (empty)' | endif
+    echo ''
+    echo '  a=add  d<#>=delete  Enter=done'
+
+    call inputsave()
+    let c = input('> ')
+    call inputrestore()
+
+    if c ==# ''
+      break
+    elseif c ==# 'a'
+      call inputsave()
+      let p = input('  Path: ', '', 'dir')
+      call inputrestore()
+      if p !=# ''
+        call add(paths, expand(p))
+      endif
+    elseif c =~# '^d\s*\d\+$'
+      let n = str2nr(matchstr(c, '\d\+'))
+      if n >= 1 && n <= len(paths)
+        call remove(paths, n - 1)
+      endif
+    endif
+  endwhile
+
+  let g:neofinder[a:key] = paths
+  call s:reopen()
+endfunction
+
+function! s:create_theme() abort
+  call inputsave()
+  let name = input('Theme name: ')
+  call inputrestore()
+  if name ==# '' || name =~# '[^a-zA-Z0-9_-]'
+    return
+  endif
+  let base = deepcopy(neofinder#theme#get(get(g:neofinder, 'theme', 'matrix')))
+  let path = neofinder#theme#save(name, base)
+  echo "\n  Saved: " . path
+  sleep 600m
+endfunction
+
+function! s:reopen() abort
   call s:build_menu()
   call s:create_panel()
   call s:snap_cursor()
   call s:render_panel()
-endfunction
-
-function! s:create_custom_theme() abort
-  call s:close_panel()
-  let name = input('New theme name: ')
-  if name ==# '' || name =~# '[^a-zA-Z0-9_-]'
-    echo "\n  Invalid name (use letters, digits, - and _ only)"
-    return
-  endif
-  let current = get(g:neofinder, 'theme', 'matrix')
-  let base = deepcopy(neofinder#theme#get(current))
-  let path = neofinder#theme#save(name, base)
-  echohl NeoFinderPrompt
-  echo printf("\n  Theme '%s' saved to %s", name, path)
-  echo '  Edit the file to customize, then :NeoConfig to switch.'
-  echohl None
-endfunction
-
-function! s:edit_custom_theme() abort
-  let dir = expand('~/.neofinder/themes')
-  if !isdirectory(dir)
-    call mkdir(dir, 'p', 0700)
-  endif
-  let files = glob(dir . '/*.vim', 0, 1)
-  if empty(files)
-    call s:close_panel()
-    echo '  No custom themes found. Create one first.'
-    return
-  endif
-  call s:close_panel()
-  echo '  Custom themes:'
-  let idx = 0
-  for f in files
-    let idx += 1
-    echo printf('  %d) %s', idx, fnamemodify(f, ':t:r'))
-  endfor
-  let choice = input('Edit theme # (or Enter to cancel): ')
-  if choice =~# '^\d\+$' && str2nr(choice) >= 1 && str2nr(choice) <= len(files)
-    execute 'edit ' . fnameescape(files[str2nr(choice) - 1])
-  endif
 endfunction
 
 function! neofinder#config#open_from_finder(source) abort
