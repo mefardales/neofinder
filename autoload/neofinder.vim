@@ -1,5 +1,5 @@
 " neofinder#  -- main autoload entry point
-" Dispatches to sources, launches the core UI, and provides :NeoHelp.
+" Dispatches to sources, launches the core UI, command palette, and help.
 
 " ---------------------------------------------------------------------------
 " Backend detection (cached)
@@ -53,65 +53,164 @@ function! neofinder#open(source, ...) abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" :NeoHelp  --  dynamic command / keybinding reference
+" Command palette -- all actions in one fuzzy list
+" ---------------------------------------------------------------------------
+" Each entry:  'display label' -> [action_type, action_arg]
+let s:palette_actions = {}
+
+function! neofinder#palette(...) abort
+  let query = a:0 ? a:1 : ''
+
+  " Build palette entries dynamically
+  let s:palette_actions = {}
+  let entries = []
+
+  " -- Sources --
+  let sources = [
+        \ ['Files           :Nf   fuzzy file finder',            'source', 'files'],
+        \ ['Configs         :Nc   /etc ~/.config nginx systemd', 'source', 'configs'],
+        \ ['Logs            :Nl   /var/log browser',             'source', 'logs'],
+        \ ['Services        :Ns   systemd units',                'source', 'services'],
+        \ ['Journal         :Nj   journalctl search',            'source', 'journal'],
+        \ ['Hosts           :Nh   SSH hosts → connect',          'source', 'hosts'],
+        \ ['Ansible         :Na   playbooks roles inventories',  'source', 'ansible'],
+        \ ['Tags            :Nt   bookmarked files',             'source', 'tags'],
+        \ ['Buffers         :Nb   open buffer list',             'source', 'buffers'],
+        \ ['Tab Groups      :Ng   tmux-like tab groups',         'source', 'tabgroups'],
+        \ ['Terminal        :Nr   open terminal',                'source', 'terminal'],
+        \ ]
+
+  for [label, type, arg] in sources
+    call add(entries, label)
+    let s:palette_actions[label] = [type, arg]
+  endfor
+
+  " -- Actions --
+  let actions = [
+        \ ['Tag current file        bookmark this file',          'call', 'neofinder#tags#tag_current()'],
+        \ ['Untag current file      remove bookmark',             'call', 'neofinder#tags#untag_current()'],
+        \ ['Settings                config panel (F1)',            'call', 'neofinder#config#open()'],
+        \ ['Statusline toggle       on/off global statusline',    'call', 'neofinder#statusline#toggle()'],
+        \ ['Help                    all commands & keybindings',  'call', 'neofinder#help()'],
+        \ ]
+
+  for [label, type, arg] in actions
+    call add(entries, label)
+    let s:palette_actions[label] = [type, arg]
+  endfor
+
+  " -- Themes --
+  let current_theme = get(g:neofinder, 'theme', 'matrix')
+  for t in neofinder#theme#list()
+    let marker = (t ==# current_theme) ? ' (active)' : ''
+    let label = 'Theme: ' . t . marker
+    call add(entries, label)
+    let s:palette_actions[label] = ['theme', t]
+  endfor
+
+  " -- Tab group management --
+  let grp_actions = [
+        \ ['Group: create new tab group',    'call', 'neofinder#buffers#create_group(input("Group name: "))'],
+        \ ['Group: add tab to group',        'call', 'neofinder#buffers#add_to_group(input("Group name: "))'],
+        \ ['Group: remove tab from group',   'call', 'neofinder#buffers#remove_from_group(input("Group name: "))'],
+        \ ]
+  for [label, type, arg] in grp_actions
+    call add(entries, label)
+    let s:palette_actions[label] = [type, arg]
+  endfor
+
+  " -- Run command --
+  let label = 'Run command in terminal'
+  call add(entries, label)
+  let s:palette_actions[label] = ['run', '']
+
+  " -- Python commands --
+  if neofinder#python#has_python3()
+    for pyname in neofinder#python#list()
+      let label = 'Python: ' . pyname
+      call add(entries, label)
+      let s:palette_actions[label] = ['python', pyname]
+    endfor
+    let label = 'Python: list all commands'
+    call add(entries, label)
+    let s:palette_actions[label] = ['call', 'neofinder#python#show_list()']
+  endif
+
+  call neofinder#core#run('palette', entries, query)
+endfunction
+
+" ---------------------------------------------------------------------------
+" Palette dispatcher -- called by core when user accepts a palette item
+" ---------------------------------------------------------------------------
+function! neofinder#palette_dispatch(selected) abort
+  if !has_key(s:palette_actions, a:selected)
+    return
+  endif
+  let [type, arg] = s:palette_actions[a:selected]
+
+  if type ==# 'source'
+    if arg ==# 'terminal'
+      call neofinder#buffers#open_terminal()
+    else
+      call neofinder#open(arg, '')
+    endif
+  elseif type ==# 'call'
+    execute 'call ' . arg
+  elseif type ==# 'theme'
+    let g:neofinder.theme = arg
+    call neofinder#theme#apply()
+    echo '  Theme: ' . arg
+  elseif type ==# 'python'
+    call neofinder#python#exec(arg)
+  elseif type ==# 'run'
+    let cmd = input('Command: ')
+    if cmd !=# ''
+      call neofinder#buffers#open_terminal(cmd)
+    endif
+  endif
+endfunction
+
+" ---------------------------------------------------------------------------
+" :Neo help -- quick reference via palette
 " ---------------------------------------------------------------------------
 function! neofinder#help() abort
   let lines = [
-        \ '  NeoFinder  - Matrix Edition  v1.0.0',
+        \ '  NeoFinder  - Matrix Edition  v2.0.0',
         \ '  =====================================',
         \ '',
-        \ '  COMMANDS',
-        \ '  --------',
-        \ '  :NeoFinder        fuzzy file finder        <Leader>ff',
-        \ '  :NeoConfigs       config files (/etc,~/)   <Leader>fc',
-        \ '  :NeoLogs          /var/log browser          <Leader>fl',
-        \ '  :NeoServices      systemd units             <Leader>fs',
-        \ '  :NeoJournal       journalctl search         <Leader>fj',
-        \ '  :NeoHosts         SSH hosts                 <Leader>fh',
-        \ '  :NeoAnsible       playbooks & roles         <Leader>fa',
-        \ '  :NeoTags          tagged/bookmarked files   <Leader>ft',
-        \ '  :NeoTag           tag current file          <Leader>fT',
-        \ '  :NeoUntag         untag current file',
+        \ '  COMMANDS (type : then Tab)',
+        \ '  --------------------------',
+        \ '  :Neo          command palette (search everything)',
+        \ '  :Nf           files           <Leader>ff',
+        \ '  :Nc           configs         <Leader>fc',
+        \ '  :Nl           logs            <Leader>fl',
+        \ '  :Ns           services        <Leader>fs',
+        \ '  :Nj           journal         <Leader>fj',
+        \ '  :Nh           hosts/ssh       <Leader>fh',
+        \ '  :Na           ansible         <Leader>fa',
+        \ '  :Nt           tags            <Leader>ft',
+        \ '  :Nb           buffers         <Leader>fb',
+        \ '  :Ng           tab groups      <Leader>fg',
+        \ '  :Nr           terminal        <Leader>fR',
         \ '',
-        \ '  BUFFER & TAB MANAGER',
-        \ '  --------------------',
-        \ '  :NeoBuffers       open buffer list          <Leader>fb',
-        \ '  :NeoTabGroups     tab groups (tmux-like)    <Leader>fg',
-        \ '  :NeoGroupCreate   create named tab group',
-        \ '  :NeoGroupAdd      add tab to group',
-        \ '  :NeoGroupRemove   remove tab from group',
-        \ '  :NeoTerminal      open terminal             <Leader>fR',
-        \ '  :NeoRun {cmd}     run command in terminal',
-        \ '',
-        \ '  :NeoConfig        settings panel             <Leader>fS',
-        \ '',
-        \ '  PYTHON COMMANDS  (requires +python3)',
-        \ '  ----------------------------------------',
-        \ '  :NeoPythonExec    run a registered command',
-        \ '  :NeoPythonList    list all registered commands',
-        \ '  :NeoPythonBind    bind command to a key',
-        \ '  Auto-load:  ~/.neofinder/python/*.py',
-        \ '',
-        \ '  :NeoHelp          this help                 <Leader>f?',
+        \ '  <Leader>n     open palette',
         \ '',
         \ '  INSIDE THE FINDER',
         \ '  -----------------',
-        \ '  <CR>              open file / execute',
-        \ '  <C-v>             open in vertical split',
-        \ '  <C-x>             open in horizontal split',
-        \ '  <C-s>             sudoedit',
-        \ '  <C-t>             tail -f  (logs)',
-        \ '  <C-r>             systemctl restart (services)',
-        \ '  <C-h>             ssh (hosts)',
-        \ '  <Tab>             toggle multi-select',
-        \ '  <C-a>             select all',
-        \ '  <C-d>             delete buffer (buffers) / deselect all',
-        \ '  <C-j> / <C-n>     next item',
-        \ '  <C-k> / <C-p>     previous item',
-        \ '  Left Arrow        shrink preview pane',
-        \ '  Right Arrow       grow preview pane',
-        \ '  <F1>              open settings panel',
-        \ '  <Esc> / <C-c>     close',
+        \ '  Up/Down, C-k/C-j   navigate',
+        \ '  <CR>                open / execute',
+        \ '  <C-v>               vertical split',
+        \ '  <C-x>               horizontal split',
+        \ '  <C-s>               sudoedit',
+        \ '  <C-t>               tail -f  (logs)',
+        \ '  <C-r>               systemctl restart',
+        \ '  <C-h>               ssh connect (hosts)',
+        \ '  <Tab>               multi-select toggle',
+        \ '  <C-a>               select all',
+        \ '  <C-d>               deselect / delete buf',
+        \ '  Left/Right          resize preview',
+        \ '  <F1>                settings panel',
+        \ '  <Esc>               close',
         \ '',
         \ '  THEMES: ' . join(neofinder#theme#list(), ', '),
         \ '  Active: ' . get(g:neofinder, 'theme', 'matrix'),

@@ -1,7 +1,14 @@
 " neofinder.vim - Matrix Edition fuzzy finder & sysadmin toolkit
 " Maintainer: NeoFinder contributors
-" Version:    1.0.0
+" Version:    2.0.0
 " License:    MIT
+"
+" Commands:
+"   :Neo          command palette (fuzzy search all actions)
+"   :Nf           files       :Nc  configs     :Nl  logs
+"   :Ns           services    :Nj  journal     :Nh  hosts/ssh
+"   :Na           ansible     :Nt  tags        :Nb  buffers
+"   :Ng           tab groups  :Nr  terminal
 
 if exists('g:loaded_neofinder') || &compatible
   finish
@@ -47,60 +54,49 @@ for [s:k, s:v] in items(s:defaults)
 endfor
 
 " ---------------------------------------------------------------------------
-" Commands
+" Commands -- short, unique prefixes for fast tab-complete
 " ---------------------------------------------------------------------------
-command! -nargs=? NeoFinder   call neofinder#open('files', <q-args>)
-command! -nargs=? NeoConfigs  call neofinder#open('configs', <q-args>)
-command! -nargs=? NeoLogs     call neofinder#open('logs', <q-args>)
-command! -nargs=? NeoServices call neofinder#open('services', <q-args>)
-command! -nargs=? NeoJournal  call neofinder#open('journal', <q-args>)
-command! -nargs=? NeoHosts    call neofinder#open('hosts', <q-args>)
-command! -nargs=? NeoAnsible  call neofinder#open('ansible', <q-args>)
-command! -nargs=? NeoTags     call neofinder#open('tags', <q-args>)
-command! -nargs=0 NeoTag      call neofinder#tags#tag_current()
-command! -nargs=0 NeoUntag    call neofinder#tags#untag_current()
-command! -nargs=? NeoBuffers     call neofinder#open('buffers', <q-args>)
-command! -nargs=? NeoTabGroups   call neofinder#open('tabgroups', <q-args>)
-command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupCreate call neofinder#buffers#create_group(<q-args>)
-command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupAdd    call neofinder#buffers#add_to_group(<q-args>)
-command! -nargs=1 -complete=customlist,neofinder#buffers#group_names NeoGroupRemove call neofinder#buffers#remove_from_group(<q-args>)
-command! -nargs=0 NeoTerminal    call neofinder#buffers#open_terminal()
-command! -nargs=+ NeoRun         call neofinder#buffers#open_terminal(<q-args>)
-command! -nargs=0 NeoConfig       call neofinder#config#open()
-command! -nargs=? NeoTheme        call neofinder#theme#switch(<q-args>)
-command! -nargs=0 NeoStatusToggle call neofinder#statusline#toggle()
-command! -nargs=1 -complete=customlist,neofinder#python#complete NeoPythonExec call neofinder#python#exec(<q-args>)
-command! -nargs=0 NeoPythonList call neofinder#python#show_list()
-command! -nargs=+ NeoPythonBind call s:python_bind(<f-args>)
-command! -nargs=0 NeoHelp     call neofinder#help()
+" The palette: fuzzy search all available actions
+command! -nargs=? Neo  call neofinder#palette(<q-args>)
+
+" Direct source commands (sysadmin speed)
+command! -nargs=? Nf   call neofinder#open('files', <q-args>)
+command! -nargs=? Nc   call neofinder#open('configs', <q-args>)
+command! -nargs=? Nl   call neofinder#open('logs', <q-args>)
+command! -nargs=? Ns   call neofinder#open('services', <q-args>)
+command! -nargs=? Nj   call neofinder#open('journal', <q-args>)
+command! -nargs=? Nh   call neofinder#open('hosts', <q-args>)
+command! -nargs=? Na   call neofinder#open('ansible', <q-args>)
+command! -nargs=? Nt   call neofinder#open('tags', <q-args>)
+command! -nargs=? Nb   call neofinder#open('buffers', <q-args>)
+command! -nargs=? Ng   call neofinder#open('tabgroups', <q-args>)
+command! -nargs=0 Nr   call neofinder#buffers#open_terminal()
 
 " ---------------------------------------------------------------------------
 " Default mappings (override with g:neofinder.no_mappings = 1)
 " ---------------------------------------------------------------------------
 if !get(g:neofinder, 'no_mappings', 0)
-  nnoremap <silent> <Leader>ff :NeoFinder<CR>
-  nnoremap <silent> <Leader>fc :NeoConfigs<CR>
-  nnoremap <silent> <Leader>fl :NeoLogs<CR>
-  nnoremap <silent> <Leader>fs :NeoServices<CR>
-  nnoremap <silent> <Leader>fj :NeoJournal<CR>
-  nnoremap <silent> <Leader>fh :NeoHosts<CR>
-  nnoremap <silent> <Leader>fa :NeoAnsible<CR>
-  nnoremap <silent> <Leader>ft :NeoTags<CR>
-  nnoremap <silent> <Leader>fT :NeoTag<CR>
-  nnoremap <silent> <Leader>fb :NeoBuffers<CR>
-  nnoremap <silent> <Leader>fg :NeoTabGroups<CR>
-  nnoremap <silent> <Leader>fR :NeoTerminal<CR>
-  nnoremap <silent> <Leader>fS :NeoConfig<CR>
-  nnoremap <silent> <Leader>f? :NeoHelp<CR>
+  nnoremap <silent> <Leader>n  :Neo<CR>
+  nnoremap <silent> <Leader>ff :Nf<CR>
+  nnoremap <silent> <Leader>fc :Nc<CR>
+  nnoremap <silent> <Leader>fl :Nl<CR>
+  nnoremap <silent> <Leader>fs :Ns<CR>
+  nnoremap <silent> <Leader>fj :Nj<CR>
+  nnoremap <silent> <Leader>fh :Nh<CR>
+  nnoremap <silent> <Leader>fa :Na<CR>
+  nnoremap <silent> <Leader>ft :Nt<CR>
+  nnoremap <silent> <Leader>fb :Nb<CR>
+  nnoremap <silent> <Leader>fg :Ng<CR>
+  nnoremap <silent> <Leader>fR :Nr<CR>
 endif
 
 " ---------------------------------------------------------------------------
-" Helper for :NeoPythonBind  (splits args into name + key)
+" Helper for NeoPythonBind (kept internal, accessed via palette)
 " ---------------------------------------------------------------------------
 function! s:python_bind(...) abort
   if a:0 < 2
     echohl ErrorMsg
-    echo 'Usage: :NeoPythonBind <CommandName> <key>'
+    echo 'Usage:  call neofinder#python#bind("Name", "<key>")'
     echohl None
     return
   endif
@@ -125,7 +121,6 @@ augroup NeoFinderThemeStartup
   autocmd VimEnter,ColorScheme * call neofinder#theme#apply()
 augroup END
 
-" Apply immediately for current session
 call neofinder#theme#apply()
 
 let &cpo = s:save_cpo

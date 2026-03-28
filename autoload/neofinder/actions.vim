@@ -10,6 +10,12 @@ function! neofinder#actions#execute(source, action, targets) abort
     return
   endif
 
+  " Palette dispatch -- run the selected palette action
+  if a:source ==# 'palette'
+    call neofinder#palette_dispatch(a:targets[0])
+    return
+  endif
+
   " Route by action type
   if a:action ==# 'edit'
     call s:action_edit(a:source, a:targets)

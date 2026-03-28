@@ -53,45 +53,44 @@ One-liner: >
 ==============================================================================
 3. COMMANDS                                         *neofinder-commands*
 
-*:NeoFinder*       Fuzzy file finder (from cwd)
-*:NeoConfigs*      Config files in /etc, ~/.config, etc.
-*:NeoLogs*         Browse /var/log files
-*:NeoServices*     Systemd unit files with actions
-*:NeoJournal*      Fuzzy search journalctl output
-*:NeoHosts*        SSH hosts from ~/.ssh/config and known_hosts
-*:NeoAnsible*      Ansible playbooks, inventories, roles
-*:NeoTags*         Show tagged/bookmarked files
-*:NeoTag*          Tag the current buffer's file
-*:NeoUntag*        Untag the current buffer's file
-*:NeoBuffers*      Fuzzy buffer list (switch, split, delete)
-*:NeoTabGroups*    List and switch between named tab groups
-*:NeoGroupCreate*  Create a named tab group (tmux-like session)
-*:NeoGroupAdd*     Add current tab to a named group
-*:NeoGroupRemove*  Remove current tab from a named group
-*:NeoTerminal*     Open a terminal in a bottom split
-*:NeoRun*          Open terminal and execute a command
-*:NeoConfig*       Open settings panel (themes, display options)
-*:NeoHelp*         Show all commands and keybindings
+*:Neo*    Command palette -- fuzzy search all actions, themes,
+          sources, settings.  The single entry point.
+
+Short commands for fast access (each unique, no tab conflicts):
+
+*:Nf*     Files -- fuzzy file finder from cwd
+*:Nc*     Configs -- /etc, ~/.config, nginx, systemd, etc.
+*:Nl*     Logs -- browse /var/log files
+*:Ns*     Services -- systemd unit files with actions
+*:Nj*     Journal -- fuzzy search journalctl output
+*:Nh*     Hosts -- SSH hosts from ~/.ssh/config → direct connect
+*:Na*     Ansible -- playbooks, inventories, roles
+*:Nt*     Tags -- bookmarked files
+*:Nb*     Buffers -- fuzzy buffer list (switch, split, delete)
+*:Ng*     Tab Groups -- tmux-like named tab groups
+*:Nr*     Terminal -- open terminal in bottom split
+
+Tag/untag, settings, themes, tab group management, Python
+commands, and all other actions are available from the :Neo
+command palette.
 
 ==============================================================================
 4. KEY BINDINGS                                     *neofinder-keys*
 
 Default leader mappings (disable with g:neofinder.no_mappings): >
 
-    <Leader>ff    :NeoFinder
-    <Leader>fc    :NeoConfigs
-    <Leader>fl    :NeoLogs
-    <Leader>fs    :NeoServices
-    <Leader>fj    :NeoJournal
-    <Leader>fh    :NeoHosts
-    <Leader>fa    :NeoAnsible
-    <Leader>ft    :NeoTags
-    <Leader>fT    :NeoTag
-    <Leader>fb    :NeoBuffers
-    <Leader>fg    :NeoTabGroups
-    <Leader>fR    :NeoTerminal
-    <Leader>fS    :NeoConfig
-    <Leader>f?    :NeoHelp
+    <Leader>n     :Neo   (command palette)
+    <Leader>ff    :Nf    files
+    <Leader>fc    :Nc    configs
+    <Leader>fl    :Nl    logs
+    <Leader>fs    :Ns    services
+    <Leader>fj    :Nj    journal
+    <Leader>fh    :Nh    hosts
+    <Leader>fa    :Na    ansible
+    <Leader>ft    :Nt    tags
+    <Leader>fb    :Nb    buffers
+    <Leader>fg    :Ng    tab groups
+    <Leader>fR    :Nr    terminal
 <
 Inside the finder window:
 
