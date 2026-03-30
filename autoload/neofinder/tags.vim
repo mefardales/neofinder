@@ -216,9 +216,15 @@ function! neofinder#tags#list_favorites() abort
   return result
 endfunction
 
-" Add cwd or a specific dir to favorites
+" Add current file's directory (or specific dir) to favorites
 function! neofinder#tags#add_favorite(...) abort
-  let dir = a:0 ? fnamemodify(a:1, ':p') : getcwd()
+  if a:0
+    let dir = fnamemodify(a:1, ':p')
+  else
+    " Use the directory of the current file, not cwd
+    let filedir = expand('%:p:h')
+    let dir = filedir !=# '' ? filedir : getcwd()
+  endif
   let dir = substitute(dir, '[/\\]$', '', '')
   call s:ensure_favs_file()
   let favs = filter(readfile(s:favs_file), 'v:val !=# ""')
