@@ -422,10 +422,18 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-R → systemctl restart
+    " Ctrl-R → refresh (clear cache, re-scan)
     if c == 18
-      call s:accept('restart')
-      return
+      call neofinder#sources#invalidate_cache()
+      if has('python3')
+        call neofinder#indexer#clear()
+        call neofinder#indexer#start(get(g:neofinder, '_browse_dir', getcwd()))
+      endif
+      let s:state.items = neofinder#sources#gather(s:state.source)
+      call s:refilter()
+      call s:redraw()
+      echohl NeoFinderPrompt | echo '  Refreshed' | echohl None
+      continue
     endif
 
     " Ctrl-H → ssh (only when source is 'hosts')
@@ -515,12 +523,17 @@ function! s:input_loop() abort
           call s:refilter()
         endif
       elseif s:state.source ==# 'tags' && s:state.cursor < len(s:state.filtered)
-        " Untag the file under cursor
         let item = s:state.filtered[s:state.cursor]
         call neofinder#tags#remove(item)
-        " Refresh the list from parent group or all tags
         let s:state.items = neofinder#tags#list()
         call s:refilter()
+      elseif s:state.source ==# 'favorites' && s:state.cursor < len(s:state.filtered)
+        let item = s:state.filtered[s:state.cursor]
+        if item !~# '^\[+\]'
+          call neofinder#tags#remove_favorite(item)
+          let s:state.items = neofinder#sources#gather('favorites')
+          call s:refilter()
+        endif
       else
         let s:state.selected = {}
       endif

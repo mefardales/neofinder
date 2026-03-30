@@ -84,6 +84,7 @@ command! -nargs=? Nedit call neofinder#open('commands', <q-args>)
 if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fp :Neo<CR>
   nnoremap <silent> <Leader>ff :Nf<CR>
+  nnoremap <silent> <Leader>fv :call neofinder#open('favorites', '')<CR>
   nnoremap <silent> <Leader>fg :NTg<CR>
   nnoremap <silent> <Leader>ft :Nt<CR>
   nnoremap <silent> <Leader>fu :Nu<CR>
@@ -150,6 +151,10 @@ command! -nargs=+ NeoPythonBind call neofinder#python#bind(<f-args>)
 augroup NeoFinderPython
   autocmd!
   autocmd VimEnter * call neofinder#python#autoload()
+  " Pre-index cwd for fast browse search
+  if has('python3')
+    autocmd VimEnter * call neofinder#indexer#start(getcwd())
+  endif
 augroup END
 
 " ---------------------------------------------------------------------------

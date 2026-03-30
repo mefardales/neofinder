@@ -155,6 +155,7 @@ function! s:apply_config(data) abort
     if has_key(e, 'encoding')
       try | execute 'set encoding=' . e.encoding | catch | endtry
     endif
+    if has_key(e, 'autochdir')        | let g:neofinder.autochdir = e.autochdir | endif
     if has_key(e, 'scrolloff')        | execute 'set scrolloff=' . e.scrolloff | endif
     if has_key(e, 'sidescrolloff')    | execute 'set sidescrolloff=' . e.sidescrolloff | endif
     if has_key(e, 'mouse')            | execute 'set mouse=' . e.mouse | endif
@@ -293,6 +294,7 @@ function! s:create_default(path) abort
         \ '',
         \ '# Files & buffers',
         \ 'encoding = "utf-8"             # utf-8, latin1, cp1252',
+        \ 'autochdir = true                # cwd follows the active file',
         \ 'hidden = true                  # allow hidden buffers with unsaved changes',
         \ 'autowrite = false              # auto-save before :make, :next, etc.',
         \ 'swapfile = false               # disable .swp files',

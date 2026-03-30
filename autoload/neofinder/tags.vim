@@ -186,3 +186,71 @@ endfunction
 function! neofinder#tags#extract_group_name(line) abort
   return matchstr(a:line, '^\S\+')
 endfunction
+
+" ===========================================================================
+" Directory Favorites (bookmarks)
+" ===========================================================================
+let s:favs_file = expand('~/.neofinder/favorites')
+
+function! s:ensure_favs_file() abort
+  let dir = fnamemodify(s:favs_file, ':h')
+  if !isdirectory(dir)
+    call mkdir(dir, 'p', 0700)
+  endif
+  if !filereadable(s:favs_file)
+    call writefile([], s:favs_file)
+  endif
+  return s:favs_file
+endfunction
+
+" List all favorites as display lines
+function! neofinder#tags#list_favorites() abort
+  call s:ensure_favs_file()
+  let lines = filter(readfile(s:favs_file), 'v:val !=# ""')
+  let home = expand('~')
+  let result = []
+  for dir in lines
+    let short = substitute(dir, '^' . home, '~', '')
+    call add(result, short)
+  endfor
+  return result
+endfunction
+
+" Add cwd or a specific dir to favorites
+function! neofinder#tags#add_favorite(...) abort
+  let dir = a:0 ? fnamemodify(a:1, ':p') : getcwd()
+  let dir = substitute(dir, '[/\\]$', '', '')
+  call s:ensure_favs_file()
+  let favs = filter(readfile(s:favs_file), 'v:val !=# ""')
+  if index(favs, dir) >= 0
+    echohl NeoFinderStatus
+    echo '  Already in favorites: ' . dir
+    echohl None
+    return
+  endif
+  call add(favs, dir)
+  call writefile(favs, s:favs_file)
+  echohl NeoFinderPrompt
+  echo '  Favorite added: ' . dir
+  echohl None
+endfunction
+
+" Remove a dir from favorites
+function! neofinder#tags#remove_favorite(dir) abort
+  call s:ensure_favs_file()
+  let favs = filter(readfile(s:favs_file), 'v:val !=# ""')
+  let expanded = fnamemodify(expand(a:dir), ':p')
+  let expanded = substitute(expanded, '[/\\]$', '', '')
+  let new_favs = filter(copy(favs), 'v:val !=# expanded && v:val !=# a:dir')
+  if len(new_favs) < len(favs)
+    call writefile(new_favs, s:favs_file)
+    echohl NeoFinderPrompt
+    echo '  Favorite removed: ' . a:dir
+    echohl None
+  endif
+endfunction
+
+" Resolve display line back to full path
+function! neofinder#tags#resolve_favorite(display) abort
+  return fnamemodify(expand(a:display), ':p')
+endfunction

@@ -85,6 +85,20 @@ function! s:action_edit(source, targets) abort
     return
   endif
 
+  if a:source ==# 'favorites'
+    let line = a:targets[0]
+    if line =~# '^\[+\]'
+      call neofinder#tags#add_favorite()
+    else
+      let dir = neofinder#tags#resolve_favorite(line)
+      if isdirectory(dir)
+        execute 'cd ' . fnameescape(dir)
+        call neofinder#browse(dir)
+      endif
+    endif
+    return
+  endif
+
   if a:source ==# 'run'
     let name = matchstr(a:targets[0], '^\s*\zs\S\+')
     if name !=# ''
@@ -133,6 +147,15 @@ function! s:action_edit(source, targets) abort
       execute 'edit ' . fnameescape(target)
     endif
   endfor
+
+  " Auto-cd to file's directory
+  if get(g:neofinder, 'autochdir', 0) && !empty(a:targets)
+    let dir = fnamemodify(a:targets[0], ':p:h')
+    if isdirectory(dir)
+      execute 'cd ' . fnameescape(dir)
+    endif
+  endif
+
   let &hidden = save_hidden
 endfunction
 

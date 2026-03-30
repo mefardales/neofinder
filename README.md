@@ -59,7 +59,8 @@ Open with `:Neo` or `<Leader>fp`. Everything starts here:
 
 ```
 Browse          :ff   file browser
-Buffers         :fb   open buffers  C-Left/Right
+Favorites       :fv   bookmarked directories
+Buffers         :fb   open buffers
 Tags            :fg   tagged file groups
 Terminal        :fR   open terminal
 Run             :fr   execute commands
@@ -75,6 +76,7 @@ Config          :fc   config.toml
 |---|---|
 | `<Leader>fp` | Open palette |
 | `<Leader>ff` | File browser |
+| `<Leader>fv` | Favorites (bookmarked directories) |
 | `<Leader>fb` | Buffer list |
 | `<Leader>fg` | Tag groups |
 | `<Leader>ft` | Tag current file |
@@ -94,7 +96,9 @@ Config          :fc   config.toml
 | `Ctrl-V` | Open in vertical split |
 | `Ctrl-X` | Open in horizontal split |
 | `Ctrl-T` | Tag file under cursor to a group |
+| `Ctrl-D` | Untag / delete buffer / remove favorite |
 | `Ctrl-B` | Switch to buffer list |
+| `Ctrl-R` | Refresh (clear cache, re-index) |
 | `Tab` | Toggle focus: finder <-> editor |
 | `Ctrl-Space` | Toggle multi-select |
 | `Ctrl-A` | Select all |
@@ -110,9 +114,12 @@ Type in the finder to filter:
 |---|---|---|
 | `main` | Fuzzy | matches m-a-i-n anywhere |
 | `*.py` | Glob | only `.py` files |
-| `*.json` | Glob | only `.json` files |
+| `*.toml` | Glob | only `.toml` files |
 | `test_*` | Glob | files starting with `test_` |
 | `**/*.vim` | Glob | `.vim` files in any subdirectory |
+| `~/` | Navigate | jump to home directory |
+| `/etc/` | Navigate | jump to /etc |
+| `../` | Navigate | go up one level |
 
 ### Window Management
 
@@ -121,10 +128,20 @@ Type in the finder to filter:
 | `<Leader>sv` | Vertical split |
 | `<Leader>sh` | Horizontal split |
 | `<Leader>sc` | Close window |
-| `Shift+Tab` | Cycle between windows |
+| `Shift+Tab` | Cycle between windows (normal, insert, terminal) |
 | `Shift+Left/Right` | Resize window horizontally |
 | `Shift+Up/Down` | Resize window vertically |
 | `Ctrl+Arrow` | Resize (alternative) |
+
+### Terminal
+
+| Key | Action |
+|---|---|
+| `Shift+Tab` | Switch from terminal to editor |
+| `Esc` | Exit terminal mode (Neovim) |
+| `PageUp/PageDown` | Scroll terminal output |
+| `Shift+Arrow` | Resize terminal panel |
+| `i` or `a` | Re-enter terminal mode after scroll |
 
 ### Buffer Navigation
 
@@ -170,6 +187,7 @@ wrap = true
 tabstop = 4
 expandtab = true
 encoding = "utf-8"
+autochdir = true             # cwd follows the active file
 mouse = "a"
 clipboard = "unnamedplus"
 splitright = true
@@ -319,6 +337,23 @@ servers:/etc/nginx/nginx.conf
 dotfiles:/home/user/.bashrc
 default:/var/log/syslog
 ```
+
+## Favorites (Directory Bookmarks)
+
+Save frequently used directories for quick access.
+
+| Key | Action |
+|---|---|
+| `<Leader>fv` | Open favorites list |
+| Enter on `[+] Add current directory` | Bookmark the cwd |
+| Enter on a favorite | Open browser in that directory |
+| `Ctrl-D` | Remove favorite from list |
+
+Favorites are stored in `~/.neofinder/favorites`, one directory per line.
+
+### Auto-cd
+
+When `autochdir = true` in config.toml, the cwd automatically follows the file you open. The next time you open the browser, you're already in the right directory.
 
 ## Project Structure
 

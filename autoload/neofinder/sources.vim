@@ -36,6 +36,8 @@ function! neofinder#sources#gather(source) abort
     return s:gather_buffers()
   elseif a:source ==# 'tabgroups'
     return s:gather_tabgroups()
+  elseif a:source ==# 'favorites'
+    return s:gather_favorites()
   elseif a:source ==# 'commands'
     return s:gather_commands()
   elseif a:source ==# 'run'
@@ -385,6 +387,15 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:gather_tabgroups() abort
   return neofinder#buffers#list_groups()
+endfunction
+
+" ---------------------------------------------------------------------------
+" ---------------------------------------------------------------------------
+" favorites -- bookmarked directories
+" ---------------------------------------------------------------------------
+function! s:gather_favorites() abort
+  let result = ['[+] Add current directory']
+  return result + neofinder#tags#list_favorites()
 endfunction
 
 " ---------------------------------------------------------------------------
