@@ -97,6 +97,11 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>bn :bnext<CR>
   nnoremap <silent> <Leader>bp :bprevious<CR>
 
+  " Split window
+  nnoremap <silent> <Leader>sv :vsplit<CR>
+  nnoremap <silent> <Leader>sh :split<CR>
+  nnoremap <silent> <Leader>sc <C-w>c
+
   " Window navigation
   nnoremap <silent> <S-Tab>    <C-w>w
   inoremap <silent> <S-Tab>    <C-o><C-w>w
