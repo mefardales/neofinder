@@ -117,26 +117,77 @@ function! neofinder#python#create(name) abort
     return ''
   endif
 
-  " Write .json template
+  " Write .json handler
   let json_lines = [
         \ '{',
         \ '  "name": "' . a:name . '",',
         \ '  "desc": "TODO: describe this command",',
+        \ '',
+        \ '  // ── deps: what this command uses ──────────────────',
+        \ '  // "input"  = asks user for variables (see "in")',
+        \ '  // "output" = writes to output buffer (STDOUT)',
+        \ '  // "shell"  = runs shell commands (nf.sh)',
+        \ '  // "buffer" = reads/writes current buffer (nf.buf)',
+        \ '  // "tags"   = accesses tag groups (nf.tags)',
         \ '  "deps": ["output"],',
+        \ '',
+        \ '  // ── in: variables to ask the user ─────────────────',
+        \ '  // Each key becomes a variable in your .py',
+        \ '  // "in": { "host": "Host/IP: ", "port": "Port: " },',
+        \ '',
+        \ '  // ── out: output buffer title ──────────────────────',
+        \ '  // Use ${var} to interpolate input variables',
         \ '  "out": "[' . a:name . ']"',
+        \ '',
+        \ '  // ── pipe: load buffer into STDIN ──────────────────',
+        \ '  // "pipe": "buffer"  -> STDIN.text / STDIN.lines',
         \ '}',
         \ ]
   call writefile(json_lines, json_path)
 
-  " Write .py template
+  " Write .py template with full reference
   let py_lines = [
+        \ '# ── ' . a:name . ' ─────────────────────────────────────',
+        \ '#',
+        \ '# STANDARD I/O (injected by handler):',
+        \ '#   STDIN.text / STDIN.lines    piped input (from buffer or "in")',
+        \ '#   STDIN.varname               variables from handler "in"',
+        \ '#   STDOUT.print("line")        collect output (auto-flush to buffer)',
+        \ '#   STDOUT.write(["a","b"])     collect multiple lines',
+        \ '#   STDERR.print("error")       collect errors (auto-shown after)',
+        \ '#',
+        \ '# CONTEXT:',
+        \ '#   nf.file / nf.dir / nf.line / nf.filetype / nf.theme',
+        \ '#',
+        \ '# BUFFER (nf.buf):',
+        \ '#   .lines .text .name .line .line_number .selection',
+        \ '#   .write(x) .append(x) .insert(x,n) .clear() [i] [i]=x',
+        \ '#',
+        \ '# SHELL:',
+        \ '#   stdout, stderr, rc = nf.sh("cmd")',
+        \ '#   nf.sh_output("cmd")         run & show in output buffer',
+        \ '#   nf.sh_lines("cmd")          returns list of lines',
+        \ '#',
+        \ '# INPUT:',
+        \ '#   nf.input("prompt")          ask user for text',
+        \ '#   nf.confirm("sure?")         yes/no dialog',
+        \ '#   nf.select(["a","b"])        pick from list',
+        \ '#',
+        \ '# TAGS:',
+        \ '#   nf.tags.groups() .files(group) .add(path,group) .remove(path)',
+        \ '#',
+        \ '# FILES:',
+        \ '#   nf.open(p) .vsplit(p) .split(p) .scratch(lines,title) .buffers()',
+        \ '#',
+        \ '# MESSAGES:',
+        \ '#   nf.echo(x) .warn(x) .error(x)',
+        \ '# ────────────────────────────────────────────────────────',
+        \ '',
         \ 'STDOUT.print("' . a:name . '")',
         \ 'STDOUT.print("=" * 40)',
         \ 'STDOUT.print("")',
         \ '',
         \ '# Your code here',
-        \ '# Available: nf, STDIN, STDOUT, STDERR',
-        \ '# Run HelloDemo to see the full API',
         \ ]
   call writefile(py_lines, py_path)
 
