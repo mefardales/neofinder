@@ -330,23 +330,28 @@ class _NeoFinder:
 
     # -- Echo --
 
+    _echo_count = 0
+
     def echo(self, msg):
         """Echo a message in NeoFinder style."""
         _vim.command('echohl NeoFinderPrompt')
         _vim.command('echo "%s"' % _esc(str(msg)))
         _vim.command('echohl None')
+        _NeoFinder._echo_count += 1
 
     def warn(self, msg):
         """Echo a warning message."""
         _vim.command('echohl WarningMsg')
         _vim.command('echo "%s"' % _esc(str(msg)))
         _vim.command('echohl None')
+        _NeoFinder._echo_count += 1
 
     def error(self, msg):
         """Echo an error message."""
         _vim.command('echohl ErrorMsg')
         _vim.command('echo "%s"' % _esc(str(msg)))
         _vim.command('echohl None')
+        _NeoFinder._echo_count += 1
 
 
 nf = _NeoFinder()
@@ -535,6 +540,8 @@ def _run_command(py_path):
         stdout._title = out_title
 
     # 6) Execute
+    nf._echo_count = 0
+
     with open(py_path, 'r') as f:
         code = f.read()
 
@@ -548,3 +555,7 @@ def _run_command(py_path):
 
     # 8) Show STDERR
     stderr.show()
+
+    # 9) If command used echo (no output buffer), pause so user can read
+    if nf._echo_count > 0 and not stdout.lines:
+        _vim.eval('input(" ")')

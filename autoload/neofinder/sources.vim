@@ -36,6 +36,8 @@ function! neofinder#sources#gather(source) abort
     return s:gather_buffers()
   elseif a:source ==# 'tabgroups'
     return s:gather_tabgroups()
+  elseif a:source ==# 'commands'
+    return s:gather_commands()
   endif
   return []
 endfunction
@@ -366,6 +368,13 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:gather_tabgroups() abort
   return neofinder#buffers#list_groups()
+endfunction
+
+" ---------------------------------------------------------------------------
+" commands -- registered python commands
+" ---------------------------------------------------------------------------
+function! s:gather_commands() abort
+  return neofinder#python#list_detailed()
 endfunction
 
 " ---------------------------------------------------------------------------

@@ -107,9 +107,9 @@ function! neofinder#python#exec(name) abort
 
   call s:ensure_runtime()
 
-  let pyfile = s:registry[a:name].file
+  let pyfile = substitute(s:registry[a:name].file, '\\', '/', 'g')
   try
-    execute 'python3 _run_command("' . escape(pyfile, '\"') . '")'
+    execute 'python3 _run_command("' . escape(pyfile, '"') . '")'
   catch
     echohl ErrorMsg | echo '[NeoFinder] ' . v:exception | echohl None
   endtry
@@ -125,7 +125,8 @@ let s:builtin_dir = s:script_dir . '/commands'
 
 function! s:ensure_runtime() abort
   if !s:runtime_loaded
-    execute 'py3file ' . fnameescape(s:runtime_path)
+    let rtpath = substitute(s:runtime_path, '\\', '/', 'g')
+    execute 'py3file ' . fnameescape(rtpath)
     let s:runtime_loaded = 1
   endif
 endfunction

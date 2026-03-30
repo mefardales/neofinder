@@ -82,6 +82,15 @@ function! s:action_edit(source, targets) abort
     return
   endif
 
+  if a:source ==# 'commands'
+    " Extract command name from "  Name   [py]  description"
+    let name = matchstr(a:targets[0], '^\s*\zs\S\+')
+    if name !=# ''
+      call neofinder#python#exec(name)
+    endif
+    return
+  endif
+
   " Default: open files
   let save_hidden = &hidden
   set hidden

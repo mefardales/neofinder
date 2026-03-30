@@ -77,67 +77,21 @@ function! neofinder#palette(...) abort
   let s:palette_actions = {}
   let entries = []
 
-  " -- Core: what you actually use --
-  let core = [
+  let sources = [
         \ ['Files           :ff   fuzzy file finder',            'source', 'files'],
         \ ['Browse          :fd   directory browser',            'source', 'browse'],
         \ ['Buffers         :fb   open buffers',                 'source', 'buffers'],
         \ ['Tags            :fg   tagged file groups',           'source', 'taggroups'],
         \ ['Hosts           :fh   SSH hosts',                    'source', 'hosts'],
         \ ['Terminal        :fR   open terminal',                'source', 'terminal'],
-        \ ]
-
-  " -- Sysadmin --
-  let sysadmin = [
         \ ['Configs         :fc   /etc ~/.config',               'source', 'configs'],
         \ ['Logs            :fl   /var/log',                     'source', 'logs'],
         \ ['Services        :fs   systemd units',                'source', 'services'],
         \ ['Scripts         :fk   ~/bin scripts',                'source', 'scripts'],
+        \ ['Commands        :fr   run commands',                 'source', 'commands'],
         \ ]
 
-  " -- Commands (from .py files) --
-  let commands = []
-  for pyname in sort(neofinder#python#list())
-    call add(commands, [pyname, 'python', pyname])
-  endfor
-
-  " -- Settings --
-  let settings = [
-        \ ['Settings         F1   config panel',                 'call', 'neofinder#config#open()'],
-        \ ['Help                   keybindings & commands',      'call', 'neofinder#help()'],
-        \ ]
-
-  " -- Themes (compact: only show current + switch) --
-  let current_theme = get(g:neofinder, 'theme', 'matrix')
-  let theme_entries = []
-  for t in neofinder#theme#list()
-    if t !=# current_theme
-      call add(theme_entries, ['Theme: ' . t, 'theme', t])
-    endif
-  endfor
-
-  " Build final list
-  for [label, type, arg] in core
-    call add(entries, label)
-    let s:palette_actions[label] = [type, arg]
-  endfor
-
-  for [label, type, arg] in sysadmin
-    call add(entries, label)
-    let s:palette_actions[label] = [type, arg]
-  endfor
-
-  for [label, type, arg] in commands
-    call add(entries, label)
-    let s:palette_actions[label] = [type, arg]
-  endfor
-
-  for [label, type, arg] in settings
-    call add(entries, label)
-    let s:palette_actions[label] = [type, arg]
-  endfor
-
-  for [label, type, arg] in theme_entries
+  for [label, type, arg] in sources
     call add(entries, label)
     let s:palette_actions[label] = [type, arg]
   endfor
