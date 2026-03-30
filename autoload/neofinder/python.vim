@@ -119,7 +119,9 @@ endfunction
 " Runtime loader (loads nf object once)
 " ---------------------------------------------------------------------------
 let s:runtime_loaded = 0
-let s:runtime_path = expand('<sfile>:p:h') . '/runtime.py'
+let s:script_dir = expand('<sfile>:p:h')
+let s:runtime_path = s:script_dir . '/runtime.py'
+let s:builtin_dir = s:script_dir . '/commands'
 
 function! s:ensure_runtime() abort
   if !s:runtime_loaded
@@ -191,7 +193,6 @@ function! neofinder#python#autoload() abort
   let s:autoloaded = 1
 
   " 1) Built-in commands (shipped with plugin)
-  let s:builtin_dir = expand('<sfile>:p:h') . '/commands'
   call s:scan_dir(s:builtin_dir)
 
   " 2) User commands

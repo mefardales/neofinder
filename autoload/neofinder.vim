@@ -74,83 +74,73 @@ let s:palette_actions = {}
 function! neofinder#palette(...) abort
   let query = a:0 ? a:1 : ''
 
-  " Build palette entries dynamically
   let s:palette_actions = {}
   let entries = []
 
-  " -- Sources --
-  let sources = [
-        \ ['Browse          :Nd   directory browser (navigate)',  'source', 'browse'],
-        \ ['Files           :Nf   fuzzy file finder',            'source', 'files'],
-        \ ['Configs         :Nc   /etc ~/.config nginx systemd', 'source', 'configs'],
-        \ ['Logs            :Nl   /var/log browser',             'source', 'logs'],
-        \ ['Services        :Ns   systemd units',                'source', 'services'],
-        \ ['Journal         :Nj   journalctl search',            'source', 'journal'],
-        \ ['Hosts           :Nh   SSH hosts → connect',          'source', 'hosts'],
-        \ ['Ansible         :Na   playbooks roles inventories',  'source', 'ansible'],
-        \ ['Scripts         :Nk   ~/bin /usr/local/bin scripts',  'source', 'scripts'],
-        \ ['Wordlists       :Nw   seclists dirb dirbuster',     'source', 'wordlists'],
-        \ ['Exploits        :Nx   exploitdb metasploit payloads','source', 'exploits'],
-        \ ['Tag Groups      :fg   browse tag groups',             'source', 'taggroups'],
-        \ ['Tags (all)      :fT   all bookmarked files',         'source', 'tags'],
-        \ ['Buffers         :Nb   open buffer list',             'source', 'buffers'],
-        \ ['Tab Groups      :fG   tmux-like tab groups',         'source', 'tabgroups'],
-        \ ['Terminal        :Nr   open terminal',                'source', 'terminal'],
+  " -- Core: what you actually use --
+  let core = [
+        \ ['Files           :ff   fuzzy file finder',            'source', 'files'],
+        \ ['Browse          :fd   directory browser',            'source', 'browse'],
+        \ ['Buffers         :fb   open buffers',                 'source', 'buffers'],
+        \ ['Tags            :fg   tagged file groups',           'source', 'taggroups'],
+        \ ['Hosts           :fh   SSH hosts',                    'source', 'hosts'],
+        \ ['Terminal        :fR   open terminal',                'source', 'terminal'],
         \ ]
 
-  for [label, type, arg] in sources
-    call add(entries, label)
-    let s:palette_actions[label] = [type, arg]
-  endfor
-
-  " -- Actions --
-  let actions = [
-        \ ['Tag current file  :ft   bookmark to a group',          'call', 'neofinder#tags#tag_current()'],
-        \ ['Untag current file :fu  remove from all groups',      'call', 'neofinder#tags#untag_current()'],
-        \ ['Settings                config panel (F1)',            'call', 'neofinder#config#open()'],
-        \ ['Statusline toggle       on/off global statusline',    'call', 'neofinder#statusline#toggle()'],
-        \ ['Help                    all commands & keybindings',  'call', 'neofinder#help()'],
+  " -- Sysadmin --
+  let sysadmin = [
+        \ ['Configs         :fc   /etc ~/.config',               'source', 'configs'],
+        \ ['Logs            :fl   /var/log',                     'source', 'logs'],
+        \ ['Services        :fs   systemd units',                'source', 'services'],
+        \ ['Scripts         :fk   ~/bin scripts',                'source', 'scripts'],
         \ ]
 
-  for [label, type, arg] in actions
-    call add(entries, label)
-    let s:palette_actions[label] = [type, arg]
+  " -- Commands (from .py files) --
+  let commands = []
+  for pyname in sort(neofinder#python#list())
+    call add(commands, [pyname, 'python', pyname])
   endfor
 
-  " -- Themes --
+  " -- Settings --
+  let settings = [
+        \ ['Settings         F1   config panel',                 'call', 'neofinder#config#open()'],
+        \ ['Help                   keybindings & commands',      'call', 'neofinder#help()'],
+        \ ]
+
+  " -- Themes (compact: only show current + switch) --
   let current_theme = get(g:neofinder, 'theme', 'matrix')
+  let theme_entries = []
   for t in neofinder#theme#list()
-    let marker = (t ==# current_theme) ? ' (active)' : ''
-    let label = 'Theme: ' . t . marker
-    call add(entries, label)
-    let s:palette_actions[label] = ['theme', t]
+    if t !=# current_theme
+      call add(theme_entries, ['Theme: ' . t, 'theme', t])
+    endif
   endfor
 
-  " -- Tab group management --
-  let grp_actions = [
-        \ ['Group: create new tab group',    'call', 'neofinder#buffers#create_group(input("Group name: "))'],
-        \ ['Group: add tab to group',        'call', 'neofinder#buffers#add_to_group(input("Group name: "))'],
-        \ ['Group: remove tab from group',   'call', 'neofinder#buffers#remove_from_group(input("Group name: "))'],
-        \ ]
-  for [label, type, arg] in grp_actions
+  " Build final list
+  for [label, type, arg] in core
     call add(entries, label)
     let s:palette_actions[label] = [type, arg]
   endfor
 
-  " -- Run command --
-  let label = 'Run command in terminal'
-  call add(entries, label)
-  let s:palette_actions[label] = ['run', '']
-
-  " -- Python commands --
-  for pyname in neofinder#python#list()
-    let label = 'Python: ' . pyname
+  for [label, type, arg] in sysadmin
     call add(entries, label)
-    let s:palette_actions[label] = ['python', pyname]
+    let s:palette_actions[label] = [type, arg]
   endfor
-  let label = 'Python: list all commands'
-  call add(entries, label)
-  let s:palette_actions[label] = ['call', 'neofinder#python#show_list()']
+
+  for [label, type, arg] in commands
+    call add(entries, label)
+    let s:palette_actions[label] = [type, arg]
+  endfor
+
+  for [label, type, arg] in settings
+    call add(entries, label)
+    let s:palette_actions[label] = [type, arg]
+  endfor
+
+  for [label, type, arg] in theme_entries
+    call add(entries, label)
+    let s:palette_actions[label] = [type, arg]
+  endfor
 
   call neofinder#core#run('palette', entries, query)
 endfunction
