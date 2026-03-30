@@ -20,6 +20,12 @@ function! neofinder#sources#gather(source) abort
     return s:gather_hosts()
   elseif a:source ==# 'ansible'
     return s:gather_ansible()
+  elseif a:source ==# 'scripts'
+    return s:gather_scripts()
+  elseif a:source ==# 'wordlists'
+    return s:gather_wordlists()
+  elseif a:source ==# 'exploits'
+    return s:gather_exploits()
   elseif a:source ==# 'tags'
     return s:gather_tags()
   elseif a:source ==# 'buffers'
@@ -204,6 +210,69 @@ function! s:gather_ansible() abort
     let results += s:run_cmd(cmd)
   endfor
 
+  return results
+endfunction
+
+" ---------------------------------------------------------------------------
+" scripts -- personal scripts in ~/bin, /usr/local/bin, ~/scripts, etc.
+" ---------------------------------------------------------------------------
+function! s:gather_scripts() abort
+  let paths = get(g:neofinder, 'script_paths', [
+        \ expand('~/bin'), expand('~/scripts'), expand('~/.local/bin'),
+        \ '/usr/local/bin', '/usr/local/sbin'])
+  let results = []
+  for p in paths
+    if !isdirectory(p)
+      continue
+    endif
+    let cmd = 'find ' . shellescape(p) . ' -type f 2>/dev/null | head -n 5000'
+    let results += s:run_cmd(cmd)
+  endfor
+  return results
+endfunction
+
+" ---------------------------------------------------------------------------
+" wordlists -- /usr/share/wordlists/ and custom paths (pentest)
+" ---------------------------------------------------------------------------
+function! s:gather_wordlists() abort
+  let paths = get(g:neofinder, 'wordlist_paths', [
+        \ '/usr/share/wordlists', '/usr/share/seclists',
+        \ '/usr/share/dirb/wordlists', '/usr/share/dirbuster/wordlists',
+        \ expand('~/wordlists')])
+  let results = []
+  for p in paths
+    if !isdirectory(p)
+      continue
+    endif
+    let cmd = 'find ' . shellescape(p) . ' -type f \( -name "*.txt" -o -name "*.lst" -o -name "*.dic" \) 2>/dev/null | head -n 10000'
+    let results += s:run_cmd(cmd)
+  endfor
+  return results
+endfunction
+
+" ---------------------------------------------------------------------------
+" exploits -- searchsploit DB, metasploit modules, custom exploit dirs
+" ---------------------------------------------------------------------------
+function! s:gather_exploits() abort
+  let paths = get(g:neofinder, 'exploit_paths', [
+        \ '/usr/share/exploitdb/exploits',
+        \ '/usr/share/metasploit-framework/modules',
+        \ expand('~/exploits'), expand('~/payloads')])
+  let results = []
+  for p in paths
+    if !isdirectory(p)
+      continue
+    endif
+    let be = neofinder#backend()
+    if be ==# 'rg'
+      let cmd = 'rg --files ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
+    elseif be ==# 'fd'
+      let cmd = 'fd --type f . ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
+    else
+      let cmd = 'find ' . shellescape(p) . ' -type f 2>/dev/null | head -n 10000'
+    endif
+    let results += s:run_cmd(cmd)
+  endfor
   return results
 endfunction
 

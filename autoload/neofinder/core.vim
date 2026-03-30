@@ -391,14 +391,14 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Left Arrow → shrink preview
-    if ch ==# "\<Left>"
+    " Right Arrow → shrink preview (more space for file list)
+    if ch ==# "\<Right>"
       call s:resize_preview(-8)
       continue
     endif
 
-    " Right Arrow → grow preview
-    if ch ==# "\<Right>"
+    " Left Arrow → grow preview (more space for preview)
+    if ch ==# "\<Left>"
       call s:resize_preview(8)
       continue
     endif

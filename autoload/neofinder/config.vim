@@ -47,6 +47,15 @@ function! s:build_menu() abort
   call s:item('Ansible paths',
         \ s:short_list(get(g:neofinder, 'ansible_paths', [])),
         \ 'edit_ansible_paths')
+  call s:item('Script paths',
+        \ s:short_list(get(g:neofinder, 'script_paths', [])),
+        \ 'edit_script_paths')
+  call s:item('Wordlist paths',
+        \ s:short_list(get(g:neofinder, 'wordlist_paths', [])),
+        \ 'edit_wordlist_paths')
+  call s:item('Exploit paths',
+        \ s:short_list(get(g:neofinder, 'exploit_paths', [])),
+        \ 'edit_exploit_paths')
   call s:item('Ignore patterns',
         \ string(len(get(g:neofinder, 'ignore', []))) . ' rules',
         \ 'edit_ignore')
@@ -275,6 +284,12 @@ function! s:execute_action() abort
     call s:edit_paths('log_paths', 'Log paths')
   elseif a ==# 'edit_ansible_paths'
     call s:edit_paths('ansible_paths', 'Ansible paths')
+  elseif a ==# 'edit_script_paths'
+    call s:edit_paths('script_paths', 'Script paths')
+  elseif a ==# 'edit_wordlist_paths'
+    call s:edit_paths('wordlist_paths', 'Wordlist paths')
+  elseif a ==# 'edit_exploit_paths'
+    call s:edit_paths('exploit_paths', 'Exploit paths')
   elseif a ==# 'edit_ignore'
     call s:edit_paths('ignore', 'Ignore patterns')
   elseif a ==# 'set_ssh_config'

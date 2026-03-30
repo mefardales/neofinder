@@ -384,7 +384,28 @@ function! neofinder#theme#apply() abort
     endfor
   endif
 
-  " 4) Enable the global custom statusline
+  " 4) Apply preview syntax highlight groups (for syntax in preview pane)
+  "    These mirror the editor syntax groups but as NeoFinder-prefixed groups
+  "    so preview.vim can link to them without clobbering the user's colorscheme.
+  if has_key(theme, 'editor')
+    let syntax_map = {
+          \ 'Keyword':  'NeoFinderKeyword',
+          \ 'String':   'NeoFinderString',
+          \ 'Comment':  'NeoFinderComment',
+          \ 'Number':   'NeoFinderNumber',
+          \ 'Type':     'NeoFinderType',
+          \ 'Function': 'NeoFinderFunction',
+          \ 'Operator': 'NeoFinderOperator',
+          \ 'Special':  'NeoFinderSpecial',
+          \ }
+    for [key, hlname] in items(syntax_map)
+      if has_key(theme.editor, key)
+        call s:apply_hl(hlname, theme.editor[key])
+      endif
+    endfor
+  endif
+
+  " 5) Enable the global custom statusline
   call neofinder#statusline#enable()
 endfunction
 

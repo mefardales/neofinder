@@ -42,6 +42,13 @@ let s:defaults = {
       \ 'log_paths': ['/var/log'],
       \ 'ansible_paths': ['/etc/ansible', expand('~/ansible'),
       \                   expand('~/playbooks'), '.'],
+      \ 'script_paths':  [expand('~/bin'), expand('~/scripts'),
+      \                   expand('~/.local/bin'), '/usr/local/bin'],
+      \ 'wordlist_paths': ['/usr/share/wordlists', '/usr/share/seclists',
+      \                    expand('~/wordlists')],
+      \ 'exploit_paths':  ['/usr/share/exploitdb/exploits',
+      \                    '/usr/share/metasploit-framework/modules',
+      \                    expand('~/exploits')],
       \ }
 
 if !exists('g:neofinder')
@@ -68,6 +75,9 @@ command! -nargs=? Nj   call neofinder#open('journal', <q-args>)
 command! -nargs=? Nh   call neofinder#open('hosts', <q-args>)
 command! -nargs=? Na   call neofinder#open('ansible', <q-args>)
 command! -nargs=? Nt   call neofinder#open('tags', <q-args>)
+command! -nargs=? Nk   call neofinder#open('scripts', <q-args>)
+command! -nargs=? Nw   call neofinder#open('wordlists', <q-args>)
+command! -nargs=? Nx   call neofinder#open('exploits', <q-args>)
 command! -nargs=? Nb   call neofinder#open('buffers', <q-args>)
 command! -nargs=? Ng   call neofinder#open('tabgroups', <q-args>)
 command! -nargs=0 Nr   call neofinder#buffers#open_terminal()
@@ -85,6 +95,9 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fh :Nh<CR>
   nnoremap <silent> <Leader>fa :Na<CR>
   nnoremap <silent> <Leader>ft :Nt<CR>
+  nnoremap <silent> <Leader>fk :Nk<CR>
+  nnoremap <silent> <Leader>fw :Nw<CR>
+  nnoremap <silent> <Leader>fx :Nx<CR>
   nnoremap <silent> <Leader>fb :Nb<CR>
   nnoremap <silent> <Leader>fg :Ng<CR>
   nnoremap <silent> <Leader>fR :Nr<CR>
