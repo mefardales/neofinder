@@ -178,7 +178,7 @@ function! s:create_buffer() abort
 
   setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
   setlocal nowrap nonumber norelativenumber nospell
-  setlocal nocursorline nocursorcolumn
+  setlocal nocursorline nocursorcolumn winfixheight
   setlocal filetype=neofinder
 
   " Finder-specific statusline (different from editor statusline)
@@ -219,6 +219,20 @@ endfunction
 " Refilter items
 " ---------------------------------------------------------------------------
 function! s:refilter() abort
+  " Browse + query + Python indexer = search entire project tree
+  if s:state.source ==# 'browse' && s:state.query !=# '' && has('python3')
+    let dir = get(g:neofinder, '_browse_dir', getcwd())
+    let results = neofinder#indexer#search(dir, s:state.query)
+    if !empty(results)
+      let s:state.filtered = results
+      if s:state.cursor >= len(s:state.filtered)
+        let s:state.cursor = max([0, len(s:state.filtered) - 1])
+      endif
+      return
+    endif
+  endif
+
+  " Default: filter current items list
   let s:state.filtered = s:filter_items(s:state.items, s:state.query)
   if s:state.cursor >= len(s:state.filtered)
     let s:state.cursor = max([0, len(s:state.filtered) - 1])
@@ -258,8 +272,10 @@ function! s:redraw() abort
   if s:state.source ==# 'browse'
     let short_dir = substitute(s:browse_dir, '^' . expand('~'), '~', '')
     let nav_hint = '  [BS] up  [Enter] open  [C-t] tag'
-    let status = printf('  [BROWSE] %s  |  %d items%s%s',
-          \ short_dir, matched, nav_hint, tab_hint)
+    let idx_count = has('python3') ? neofinder#indexer#count(s:browse_dir) : 0
+    let idx_info = idx_count > 0 ? '  idx:' . idx_count : ''
+    let status = printf('  [BROWSE] %s  |  %d items%s%s%s',
+          \ short_dir, matched, idx_info, nav_hint, tab_hint)
   else
     let status = printf('  [%s] %d/%d  |  %s  |  multi:%d%s%s',
           \ toupper(s:state.source), matched, total, backend,
@@ -682,9 +698,15 @@ function! s:accept(action) abort
 
   " In browse mode, resolve relative names to full paths
   if s:state.source ==# 'browse'
+    let root = get(g:neofinder, '_browse_dir', getcwd())
     let resolved = []
     for t in targets
-      call add(resolved, fnamemodify(s:browse_dir . '/' . t, ':p'))
+      " Index results contain '/' so they're relative to root, not browse_dir
+      if t =~# '/' && !isdirectory(s:browse_dir . '/' . t)
+        call add(resolved, fnamemodify(root . '/' . t, ':p'))
+      else
+        call add(resolved, fnamemodify(s:browse_dir . '/' . t, ':p'))
+      endif
     endfor
     let targets = resolved
   endif

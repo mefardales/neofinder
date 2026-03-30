@@ -59,6 +59,12 @@ function! neofinder#browse(...) abort
   endif
   let dir = fnamemodify(dir, ':p')
   let g:neofinder._browse_dir = dir
+
+  " Start background indexing for fast search
+  if has('python3')
+    call neofinder#indexer#start(dir)
+  endif
+
   call neofinder#open('browse', '')
 endfunction
 
@@ -75,13 +81,12 @@ function! neofinder#palette(...) abort
   let entries = []
 
   let sources = [
-        \ ['Files           :ff   fuzzy file finder',            'source', 'files'],
-        \ ['Browse          :fd   directory browser',            'source', 'browse'],
+        \ ['Browse          :ff   file browser',                 'source', 'browse'],
         \ ['Tags            :fg   tagged file groups',           'source', 'taggroups'],
         \ ['Terminal        :fR   open terminal',                'source', 'terminal'],
         \ ['Run             :fr   execute commands',             'source', 'run'],
         \ ['Commands        :fe   edit/create commands',         'source', 'commands'],
-        \ ['Config          :fc   config.json',                  'call',   'neofinder#config#open()'],
+        \ ['Config          :fc   config.toml',                  'call',   'neofinder#config#open()'],
         \ ]
 
   for [label, type, arg] in sources

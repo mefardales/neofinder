@@ -137,16 +137,22 @@ function! neofinder#statusline#enable() abort
   if get(g:neofinder, 'statusline', 1) == 0
     return
   endif
-  set laststatus=2
+  set laststatus=2             " always show statusline
+  set cmdheight=1              " command line = 1 row, no wasted space
+  set noshowmode               " mode already in statusline
+  set noshowcmd                " no partial cmd display eating space
+  set display=lastline         " show as much of last line as possible
+  set fillchars+=stl:\ ,stlnc:\ ,vert:\│  " clean separators
   set statusline=%!neofinder#statusline#build()
 
-  " Force statusline to update on mode change
+  " Force statusline to update on mode change and resize
   augroup NeoFinderStatusline
     autocmd!
     autocmd InsertEnter,InsertLeave * redrawstatus
     autocmd CmdlineEnter,CmdlineLeave * redrawstatus
     autocmd BufEnter,BufWritePost * let s:branch_bufnr = -1 | redrawstatus
     autocmd ModeChanged * redrawstatus
+    autocmd VimResized * redrawstatus
   augroup END
 endfunction
 

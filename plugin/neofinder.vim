@@ -69,24 +69,11 @@ call neofinder#config#load()
 " The palette: fuzzy search all available actions
 command! -nargs=? Neo  call neofinder#palette(<q-args>)
 
-" Direct source commands (sysadmin speed)
-command! -nargs=? -complete=dir Nd call neofinder#browse(<q-args>)
-command! -nargs=? Nf   call neofinder#open('files', <q-args>)
-command! -nargs=? Nc   call neofinder#open('configs', <q-args>)
-command! -nargs=? Nl   call neofinder#open('logs', <q-args>)
-command! -nargs=? Ns   call neofinder#open('services', <q-args>)
-command! -nargs=? Nj   call neofinder#open('journal', <q-args>)
-command! -nargs=? Nh   call neofinder#open('hosts', <q-args>)
-command! -nargs=? Na   call neofinder#open('ansible', <q-args>)
+" Direct commands
+command! -nargs=? -complete=dir Nf call neofinder#browse(<q-args>)
 command! -nargs=? Nt   call neofinder#tags#tag_current()
 command! -nargs=? Nu   call neofinder#tags#untag_current()
 command! -nargs=? NTg  call neofinder#open('taggroups', <q-args>)
-command! -nargs=? NTa  call neofinder#open('tags', <q-args>)
-command! -nargs=? Nk   call neofinder#open('scripts', <q-args>)
-command! -nargs=? Nw   call neofinder#open('wordlists', <q-args>)
-command! -nargs=? Nx   call neofinder#open('exploits', <q-args>)
-command! -nargs=? Nb   call neofinder#open('buffers', <q-args>)
-command! -nargs=? Ng   call neofinder#open('tabgroups', <q-args>)
 command! -nargs=0 Nr   call neofinder#buffers#open_terminal()
 command! -nargs=? Nrun  call neofinder#open('run', <q-args>)
 command! -nargs=? Nedit call neofinder#open('commands', <q-args>)
@@ -97,7 +84,6 @@ command! -nargs=? Nedit call neofinder#open('commands', <q-args>)
 if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fp :Neo<CR>
   nnoremap <silent> <Leader>ff :Nf<CR>
-  nnoremap <silent> <Leader>fd :Nd<CR>
   nnoremap <silent> <Leader>fg :NTg<CR>
   nnoremap <silent> <Leader>ft :Nt<CR>
   nnoremap <silent> <Leader>fu :Nu<CR>
