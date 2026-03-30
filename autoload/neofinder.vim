@@ -82,6 +82,7 @@ function! neofinder#palette(...) abort
 
   let sources = [
         \ ['Browse          :ff   file browser',                 'source', 'browse'],
+        \ ['Buffers         :fb   open buffers  C-Left/Right',   'source', 'buffers'],
         \ ['Tags            :fg   tagged file groups',           'source', 'taggroups'],
         \ ['Terminal        :fR   open terminal',                'source', 'terminal'],
         \ ['Run             :fr   execute commands',             'source', 'run'],

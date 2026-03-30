@@ -539,6 +539,15 @@ function! s:input_loop() abort
     endif
 
 
+    " Ctrl-B → open buffer list
+    if c == 2
+      call s:cleanup()
+      let s:nav_stack = []
+      let items = neofinder#buffers#list()
+      call neofinder#core#run('buffers', items, '')
+      return
+    endif
+
     " Printable character → add to query
     if ch =~# '[ -~]'
       let s:state.query .= ch

@@ -91,6 +91,11 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fr :Nrun<CR>
   nnoremap <silent> <Leader>fe :Nedit<CR>
   nnoremap <silent> <Leader>fc :call neofinder#config#open()<CR>
+  nnoremap <silent> <Leader>fb :call neofinder#open('buffers', '')<CR>
+
+  " Buffer navigation (no finder needed)
+  nnoremap <silent> <C-Left>  :bprevious<CR>
+  nnoremap <silent> <C-Right> :bnext<CR>
 endif
 
 " ---------------------------------------------------------------------------
