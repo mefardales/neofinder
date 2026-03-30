@@ -93,9 +93,23 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fc :call neofinder#config#open()<CR>
   nnoremap <silent> <Leader>fb :call neofinder#open('buffers', '')<CR>
 
-  " Buffer navigation (no finder needed)
-  nnoremap <silent> <C-Left>  :bprevious<CR>
-  nnoremap <silent> <C-Right> :bnext<CR>
+  " Buffer navigation
+  nnoremap <silent> <Leader>bn :bnext<CR>
+  nnoremap <silent> <Leader>bp :bprevious<CR>
+
+  " Window navigation
+  nnoremap <silent> <S-Tab>    <C-w>w
+  inoremap <silent> <S-Tab>    <C-o><C-w>w
+
+  " Window resize: Shift+Arrow and Ctrl+Arrow (one will work in your terminal)
+  nnoremap <silent> <S-Left>   :vertical resize -3<CR>
+  nnoremap <silent> <S-Right>  :vertical resize +3<CR>
+  nnoremap <silent> <S-Up>     :resize +2<CR>
+  nnoremap <silent> <S-Down>   :resize -2<CR>
+  nnoremap <silent> <C-Left>   :vertical resize -3<CR>
+  nnoremap <silent> <C-Right>  :vertical resize +3<CR>
+  nnoremap <silent> <C-Up>     :resize +2<CR>
+  nnoremap <silent> <C-Down>   :resize -2<CR>
 endif
 
 " ---------------------------------------------------------------------------
