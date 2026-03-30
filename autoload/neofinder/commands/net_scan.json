@@ -1,0 +1,9 @@
+{
+  "name": "NetScan",
+  "desc": "Ping sweep or port check on a host",
+  "deps": ["input", "output", "shell"],
+  "in": {
+    "host": "Host/IP: "
+  },
+  "out": "[Scan ${host}]"
+}

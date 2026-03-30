@@ -1,0 +1,9 @@
+{
+  "name": "GrepHere",
+  "desc": "Grep pattern in cwd -> output buffer",
+  "deps": ["input", "output", "shell"],
+  "in": {
+    "pattern": "grep: "
+  },
+  "out": "[grep ${pattern}]"
+}

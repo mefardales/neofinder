@@ -1,0 +1,6 @@
+{
+  "name": "NetInfo",
+  "desc": "Network interfaces, IPs, routes, DNS",
+  "deps": ["output", "shell"],
+  "out": "[Network Info]"
+}

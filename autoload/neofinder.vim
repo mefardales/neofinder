@@ -143,16 +143,14 @@ function! neofinder#palette(...) abort
   let s:palette_actions[label] = ['run', '']
 
   " -- Python commands --
-  if neofinder#python#has_python3()
-    for pyname in neofinder#python#list()
-      let label = 'Python: ' . pyname
-      call add(entries, label)
-      let s:palette_actions[label] = ['python', pyname]
-    endfor
-    let label = 'Python: list all commands'
+  for pyname in neofinder#python#list()
+    let label = 'Python: ' . pyname
     call add(entries, label)
-    let s:palette_actions[label] = ['call', 'neofinder#python#show_list()']
-  endif
+    let s:palette_actions[label] = ['python', pyname]
+  endfor
+  let label = 'Python: list all commands'
+  call add(entries, label)
+  let s:palette_actions[label] = ['call', 'neofinder#python#show_list()']
 
   call neofinder#core#run('palette', entries, query)
 endfunction

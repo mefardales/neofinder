@@ -1,0 +1,6 @@
+nf.echo("Hello from NeoFinder!")
+nf.echo("  File:    " + nf.file)
+nf.echo("  Dir:     " + nf.dir)
+nf.echo("  Theme:   " + nf.theme)
+nf.echo("")
+nf.echo("  Run HelloDemo for the full API reference")

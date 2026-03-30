@@ -112,27 +112,19 @@ if !get(g:neofinder, 'no_mappings', 0)
 endif
 
 " ---------------------------------------------------------------------------
-" Helper for NeoPythonBind (kept internal, accessed via palette)
+" Command system (.py files)
 " ---------------------------------------------------------------------------
-function! s:python_bind(...) abort
-  if a:0 < 2
-    echohl ErrorMsg
-    echo 'Usage:  call neofinder#python#bind("Name", "<key>")'
-    echohl None
-    return
-  endif
-  call neofinder#python#bind(a:1, a:2)
-endfunction
+command! -nargs=+ -complete=customlist,neofinder#python#complete NeoPythonExec call neofinder#python#exec(<q-args>)
+command! -nargs=0 NeoPythonList call neofinder#python#show_list()
+command! -nargs=+ NeoPythonBind call neofinder#python#bind(<f-args>)
 
 " ---------------------------------------------------------------------------
-" Auto-load user Python commands from ~/.neofinder/python/
+" Auto-load built-in + user commands
 " ---------------------------------------------------------------------------
-if has('python3')
-  augroup NeoFinderPython
-    autocmd!
-    autocmd VimEnter * call neofinder#python#autoload()
-  augroup END
-endif
+augroup NeoFinderPython
+  autocmd!
+  autocmd VimEnter * call neofinder#python#autoload()
+augroup END
 
 " ---------------------------------------------------------------------------
 " Apply theme globally on startup (editor + statusline + finder highlights)

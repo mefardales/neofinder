@@ -1,0 +1,5 @@
+{
+  "name": "HelloWorld",
+  "desc": "NeoFinder info (basic system check)",
+  "deps": ["echo"]
+}

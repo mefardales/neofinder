@@ -1,0 +1,6 @@
+{
+  "name": "NetConns",
+  "desc": "Active network connections",
+  "deps": ["output", "shell"],
+  "out": "[Connections]"
+}

@@ -1,30 +1,25 @@
-" neofinder#python  -- Custom Python Commands system
+" neofinder#python  -- Command system based on .py files
 "
-" Lets users register and execute Python3 code as named NeoFinder commands.
-" Requires Vim/Neovim compiled with +python3.  Degrades gracefully if
-" python3 is not available.
+" Every command is a .py file. No inline code.
 "
-" Usage:
-"   call neofinder#python#register('MyBackup', '
-"       import os
-"       os.system("cp -r /etc/nginx ~/backup/")
-"       print("Done!")
-"   ')
+"   Built-in:  autoload/neofinder/commands/*.py   (shipped with plugin)
+"   User:      ~/.neofinder/python/*.py           (your own)
 "
-"   :NeoPythonExec MyBackup
-"   :NeoPythonList
-"   :NeoPythonBind MyBackup <leader>b
+" File format:
+"   # desc: what this command does
+"   nf.sh_output("df -h")
 "
-"   " Or from a file:
-"   call neofinder#python#register_file('Deploy', '~/scripts/deploy.py')
+" The filename becomes the command name:
+"   disk_usage.py  ->  DiskUsage
+"   git_log.py     ->  GitLog
 
 " ---------------------------------------------------------------------------
-" Registry:  { 'CommandName': { 'code': '...', 'file': '', 'desc': '' } }
+" Registry:  { 'Name': { 'file': '/path/to.py', 'desc': '...' } }
 " ---------------------------------------------------------------------------
 let s:registry = {}
 
 " ---------------------------------------------------------------------------
-" has_python3() -- check once, cache result
+" Python3 check
 " ---------------------------------------------------------------------------
 let s:has_py3 = -1
 function! neofinder#python#has_python3() abort
@@ -35,197 +30,158 @@ function! neofinder#python#has_python3() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" register({name}, {python_code} [, {description}])
-"   Register an inline Python command.
+" Register a .py file as a command
 " ---------------------------------------------------------------------------
-function! neofinder#python#register(name, code, ...) abort
-  if !neofinder#python#has_python3()
-    echohl WarningMsg
-    echo '[NeoFinder] python3 not available -- cannot register Python command: ' . a:name
-    echohl None
-    return 0
+function! s:register_file(name, path) abort
+  if !filereadable(a:path)
+    return
   endif
-  let desc = a:0 ? a:1 : 'Custom Python command'
-  let s:registry[a:name] = {'code': a:code, 'file': '', 'desc': desc}
-  return 1
+  let desc = s:read_desc(a:path)
+  let s:registry[a:name] = {'file': a:path, 'desc': desc}
+endfunction
+
+" Read description: first try .json handler, then '# desc:' from .py
+function! s:read_desc(path) abort
+  " Try .json handler first
+  let json_path = substitute(a:path, '\.py$', '.json', '')
+  if filereadable(json_path)
+    try
+      let raw = join(readfile(json_path), '')
+      let data = json_decode(raw)
+      if type(data) == type({}) && has_key(data, 'desc')
+        return data.desc
+      endif
+    catch
+    endtry
+  endif
+  " Fallback: # desc: in .py
+  let lines = readfile(a:path, '', 5)
+  for line in lines
+    let m = matchstr(line, '^#\s*desc:\s*\zs.*')
+    if m !=# ''
+      return m
+    endif
+  endfor
+  return fnamemodify(a:path, ':t')
+endfunction
+
+" Convert filename to PascalCase command name
+"   git_log.py  ->  GitLog
+"   hello.py    ->  Hello
+function! s:file_to_name(path) abort
+  let base = fnamemodify(a:path, ':t:r')
+  let parts = split(base, '_')
+  return join(map(parts, 'toupper(v:val[0]) . v:val[1:]'), '')
 endfunction
 
 " ---------------------------------------------------------------------------
-" register_file({name}, {path} [, {description}])
-"   Register a Python command that sources a .py file.
+" Scan a directory and register all .py files
 " ---------------------------------------------------------------------------
-function! neofinder#python#register_file(name, path, ...) abort
-  if !neofinder#python#has_python3()
-    echohl WarningMsg
-    echo '[NeoFinder] python3 not available -- cannot register Python command: ' . a:name
-    echohl None
-    return 0
+function! s:scan_dir(dir) abort
+  if !isdirectory(a:dir)
+    return
   endif
-  let fpath = expand(a:path)
-  if !filereadable(fpath)
-    echohl ErrorMsg
-    echo '[NeoFinder] File not found: ' . fpath
-    echohl None
-    return 0
-  endif
-  let desc = a:0 ? a:1 : 'Python file: ' . fnamemodify(fpath, ':t')
-  let s:registry[a:name] = {'code': '', 'file': fpath, 'desc': desc}
-  return 1
+  for f in glob(a:dir . '/*.py', 0, 1)
+    let name = s:file_to_name(f)
+    " User commands don't overwrite built-ins
+    if !has_key(s:registry, name)
+      call s:register_file(name, f)
+    endif
+  endfor
 endfunction
 
 " ---------------------------------------------------------------------------
-" exec({name})
-"   Execute a registered Python command by name.
+" Execute a command
 " ---------------------------------------------------------------------------
 function! neofinder#python#exec(name) abort
+  if !has_key(s:registry, a:name)
+    echohl ErrorMsg | echo '[NeoFinder] Unknown command: ' . a:name | echohl None
+    return
+  endif
   if !neofinder#python#has_python3()
     echohl ErrorMsg
-    echo '[NeoFinder] python3 is not available in this Vim build.'
+    echo '[NeoFinder] python3 required. Check :echo has("python3")'
     echohl None
     return
   endif
 
-  if !has_key(s:registry, a:name)
-    echohl ErrorMsg
-    echo '[NeoFinder] Unknown Python command: ' . a:name
-    echo '  Use :NeoPythonList to see registered commands.'
-    echohl None
-    return
-  endif
+  call s:ensure_runtime()
 
-  let entry = s:registry[a:name]
-
-  " Inject the neofinder helper module before running user code
-  let preamble = s:python_preamble()
-
+  let pyfile = s:registry[a:name].file
   try
-    if entry.file !=# ''
-      " Source from file -- run preamble first, then the file
-      execute 'python3 ' . preamble
-      execute 'py3file ' . fnameescape(entry.file)
-    else
-      " Run inline code
-      let code = preamble . "\n" . entry.code
-      execute 'python3 << NEOFINDERPY3END' . "\n" . code . "\nNEOFINDERPY3END"
-    endif
+    execute 'python3 _run_command("' . escape(pyfile, '\"') . '")'
   catch
-    echohl ErrorMsg
-    echo '[NeoFinder] Python error in "' . a:name . '": ' . v:exception
-    echohl None
+    echohl ErrorMsg | echo '[NeoFinder] ' . v:exception | echohl None
   endtry
 endfunction
 
 " ---------------------------------------------------------------------------
-" unregister({name})
+" Runtime loader (loads nf object once)
 " ---------------------------------------------------------------------------
-function! neofinder#python#unregister(name) abort
-  if has_key(s:registry, a:name)
-    call remove(s:registry, a:name)
-    return 1
+let s:runtime_loaded = 0
+let s:runtime_path = expand('<sfile>:p:h') . '/runtime.py'
+
+function! s:ensure_runtime() abort
+  if !s:runtime_loaded
+    execute 'py3file ' . fnameescape(s:runtime_path)
+    let s:runtime_loaded = 1
   endif
-  return 0
 endfunction
 
 " ---------------------------------------------------------------------------
-" list()  -- return list of registered command names
+" Query / list
 " ---------------------------------------------------------------------------
 function! neofinder#python#list() abort
   return keys(s:registry)
 endfunction
 
-" ---------------------------------------------------------------------------
-" list_detailed()  -- return list of [name, desc] pairs
-" ---------------------------------------------------------------------------
 function! neofinder#python#list_detailed() abort
   let result = []
   for [name, entry] in items(s:registry)
-    let src = entry.file !=# '' ? '(file) ' . fnamemodify(entry.file, ':t') : '(inline)'
-    call add(result, printf('  %-20s  %s  %s', name, src, entry.desc))
+    call add(result, printf('  %-20s %s', name, entry.desc))
   endfor
   return sort(result)
 endfunction
 
-" ---------------------------------------------------------------------------
-" show_list()  -- pretty-print all commands to the user
-" ---------------------------------------------------------------------------
 function! neofinder#python#show_list() abort
   if empty(s:registry)
-    echo '[NeoFinder] No Python commands registered.'
-    echo '  Use neofinder#python#register("Name", "python_code") to add one.'
+    echohl NeoFinderPrompt
+    echo '  No commands. Put .py files in ~/.neofinder/python/'
+    echohl None
     return
   endif
   echohl NeoFinderPrompt
-  echo '  NeoFinder Python Commands'
+  echo '  NeoFinder Commands'
   echo '  ' . repeat('=', 50)
   echohl None
   for line in neofinder#python#list_detailed()
     echo line
   endfor
-  echo ''
-  echo '  Run with:  :NeoPythonExec <name>'
-  echo '  Bind with: :NeoPythonBind <name> <key>'
-endfunction
-
-" ---------------------------------------------------------------------------
-" bind({name}, {key})
-"   Create a normal-mode mapping for a Python command.
-" ---------------------------------------------------------------------------
-function! neofinder#python#bind(name, key) abort
-  if !has_key(s:registry, a:name)
-    echohl ErrorMsg
-    echo '[NeoFinder] Unknown Python command: ' . a:name
-    echohl None
-    return
+  if !neofinder#python#has_python3()
+    echohl WarningMsg | echo '  Note: python3 not available' | echohl None
   endif
-  execute printf('nnoremap <silent> %s :NeoPythonExec %s<CR>', a:key, a:name)
-  echo printf('[NeoFinder] Bound %s -> :NeoPythonExec %s', a:key, a:name)
 endfunction
 
-" ---------------------------------------------------------------------------
-" Command completion function
-" ---------------------------------------------------------------------------
 function! neofinder#python#complete(lead, line, pos) abort
   return filter(keys(s:registry), 'v:val =~# "^" . a:lead')
 endfunction
 
-" ---------------------------------------------------------------------------
-" Python preamble -- injected before every command execution.
-" Provides a `neofinder` helper object with useful accessors.
-" ---------------------------------------------------------------------------
-function! s:python_preamble() abort
-  return join([
-        \ 'import vim as _vim',
-        \ 'class _NeoFinderHelper:',
-        \ '    @property',
-        \ '    def current_file(self):',
-        \ '        return _vim.eval("expand(\"%:p\")")',
-        \ '    @property',
-        \ '    def current_dir(self):',
-        \ '        return _vim.eval("getcwd()")',
-        \ '    @property',
-        \ '    def current_line(self):',
-        \ '        return _vim.current.line',
-        \ '    @property',
-        \ '    def current_buffer(self):',
-        \ '        return list(_vim.current.buffer)',
-        \ '    @property',
-        \ '    def theme(self):',
-        \ '        return _vim.eval("get(g:neofinder, \"theme\", \"matrix\")")',
-        \ '    def echo(self, msg):',
-        \ '        _vim.command("echohl NeoFinderPrompt")',
-        \ '        _vim.command("echo \"[NeoFinder] " + str(msg).replace("\"", "\\\"") + "\"")',
-        \ '        _vim.command("echohl None")',
-        \ '    def run(self, cmd):',
-        \ '        import subprocess',
-        \ '        return subprocess.run(cmd, shell=True, capture_output=True, text=True)',
-        \ '    def open_file(self, path):',
-        \ '        _vim.command("edit " + path)',
-        \ 'nf = _NeoFinderHelper()',
-        \ ], "\n")
+function! neofinder#python#bind(name, key) abort
+  if !has_key(s:registry, a:name)
+    echohl ErrorMsg | echo '[NeoFinder] Unknown: ' . a:name | echohl None
+    return
+  endif
+  execute printf('nnoremap <silent> %s :NeoPythonExec %s<CR>', a:key, a:name)
+endfunction
+
+function! neofinder#python#unregister(name) abort
+  if has_key(s:registry, a:name)
+    call remove(s:registry, a:name)
+  endif
 endfunction
 
 " ---------------------------------------------------------------------------
-" Load user commands from ~/.neofinder/python/ on first use
+" Autoload: scan built-in commands dir + user dir
 " ---------------------------------------------------------------------------
 let s:autoloaded = 0
 function! neofinder#python#autoload() abort
@@ -234,41 +190,10 @@ function! neofinder#python#autoload() abort
   endif
   let s:autoloaded = 1
 
-  " Built-in demo command: HelloWorld
-  call neofinder#python#register('HelloWorld', join([
-        \ 'nf.echo("Hello from NeoFinder Python!")',
-        \ 'nf.echo("---")',
-        \ 'nf.echo("File:   " + nf.current_file)',
-        \ 'nf.echo("Dir:    " + nf.current_dir)',
-        \ 'nf.echo("Theme:  " + nf.theme)',
-        \ 'nf.echo("Line:   " + nf.current_line)',
-        \ 'nf.echo("---")',
-        \ 'nf.echo("To create your own commands:")',
-        \ 'nf.echo("  1) Put .py files in ~/.neofinder/python/")',
-        \ 'nf.echo("  2) Or register inline: neofinder#python#register(name, code)")',
-        \ 'nf.echo("  Available: nf.echo() nf.run() nf.open_file() nf.current_file/dir/line/buffer/theme")',
-        \ ], "\n"), 'Demo command - shows NeoFinder Python API basics')
-  let dir = expand('~/.neofinder/python')
-  if !isdirectory(dir)
-    return
-  endif
-  " Source any .vim registration files
-  let vimfiles = glob(dir . '/*.vim', 0, 1)
-  for f in vimfiles
-    try
-      execute 'source ' . fnameescape(f)
-    catch
-    endtry
-  endfor
-  " Auto-register any .py files as commands (filename = command name)
-  let pyfiles = glob(dir . '/*.py', 0, 1)
-  for f in pyfiles
-    let name = fnamemodify(f, ':t:r')
-    " Convert snake_case to PascalCase for command name
-    let parts = split(name, '_')
-    let cmd_name = join(map(parts, 'toupper(v:val[0]) . v:val[1:]'), '')
-    if !has_key(s:registry, cmd_name)
-      call neofinder#python#register_file(cmd_name, f, 'Auto-loaded from ~/.neofinder/python/')
-    endif
-  endfor
+  " 1) Built-in commands (shipped with plugin)
+  let s:builtin_dir = expand('<sfile>:p:h') . '/commands'
+  call s:scan_dir(s:builtin_dir)
+
+  " 2) User commands
+  call s:scan_dir(expand('~/.neofinder/python'))
 endfunction
