@@ -91,16 +91,16 @@ endfunction
 function! s:filter_glob(items, pattern) abort
   " Convert glob to regex:  *.py -> .*\.py$   **/*.js -> .*\.js$
   let pat = a:pattern
-  let pat = substitute(pat, '\.', '\\.', 'g')   " escape dots
+  let pat = substitute(pat, '\.', '\\.', 'g')
   let pat = substitute(pat, '\*\*', '@@DSTAR@@', 'g')
-  let pat = substitute(pat, '\*', '[^/]*', 'g')  " * = anything except /
-  let pat = substitute(pat, '@@DSTAR@@', '.*', 'g') " ** = anything
-  let pat = substitute(pat, '?', '.', 'g')       " ? = single char
-  let regex = pat . '$'
+  let pat = substitute(pat, '\*', '[^/]*', 'g')
+  let pat = substitute(pat, '@@DSTAR@@', '.*', 'g')
+  let pat = substitute(pat, '?', '.', 'g')
+  let regex = '\c' . pat . '$'
 
   let results = []
   for item in a:items
-    if tolower(item) =~# tolower(regex)
+    if item =~# regex
       call add(results, item)
     endif
   endfor
