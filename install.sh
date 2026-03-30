@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NeoFinder (Matrix Edition) -- one-click installer
+# NeoFinder -- one-click installer
 # Usage:  curl -fsSL <raw-url>/install.sh | bash
 #     or: NEOFINDER_REPO=https://github.com/YOURFORK/neofinder.git bash install.sh
 set -euo pipefail

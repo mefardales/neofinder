@@ -42,6 +42,9 @@ endfunction
 " edit -- default open, context-aware
 " ---------------------------------------------------------------------------
 function! s:action_edit(source, targets) abort
+  let save_hidden = &hidden
+  set hidden
+
   if a:source ==# 'hosts'
     call s:action_host_info(a:targets)
     return
@@ -99,8 +102,8 @@ function! s:action_edit(source, targets) abort
       if name !=# ''
         let path = neofinder#python#create(name)
         if path !=# ''
-          let json_path = substitute(path, '\.py$', '.toml', '')
-          execute 'edit ' . fnameescape(json_path)
+          let toml_path = substitute(path, '\.py$', '.toml', '')
+          execute 'edit ' . fnameescape(toml_path)
           execute 'vsplit ' . fnameescape(path)
           call s:setup_split_tab()
           echohl NeoFinderPrompt
@@ -111,9 +114,9 @@ function! s:action_edit(source, targets) abort
     else
       let path = matchstr(line, '\]\s\+\zs\S.*$')
       if path !=# '' && filereadable(path)
-        let json_path = substitute(path, '\.py$', '.toml', '')
-        if filereadable(json_path)
-          execute 'edit ' . fnameescape(json_path)
+        let toml_path = substitute(path, '\.py$', '.toml', '')
+        if filereadable(toml_path)
+          execute 'edit ' . fnameescape(toml_path)
           execute 'vsplit ' . fnameescape(path)
           call s:setup_split_tab()
         else
@@ -125,8 +128,6 @@ function! s:action_edit(source, targets) abort
   endif
 
   " Default: open files
-  let save_hidden = &hidden
-  set hidden
   for target in a:targets
     if filereadable(target) || isdirectory(target)
       execute 'edit ' . fnameescape(target)

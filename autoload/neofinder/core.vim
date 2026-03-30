@@ -497,7 +497,7 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-D → delete buffer (buffers source) or deselect all
+    " Ctrl-D → context action: delete buffer / untag / deselect
     if c == 4
       if s:state.source ==# 'buffers' && s:state.cursor < len(s:state.filtered)
         let item = s:state.filtered[s:state.cursor]
@@ -507,6 +507,13 @@ function! s:input_loop() abort
           let s:state.items = neofinder#sources#gather('buffers')
           call s:refilter()
         endif
+      elseif s:state.source ==# 'tags' && s:state.cursor < len(s:state.filtered)
+        " Untag the file under cursor
+        let item = s:state.filtered[s:state.cursor]
+        call neofinder#tags#remove(item)
+        " Refresh the list from parent group or all tags
+        let s:state.items = neofinder#tags#list()
+        call s:refilter()
       else
         let s:state.selected = {}
       endif
@@ -551,6 +558,22 @@ function! s:input_loop() abort
     " Printable character → add to query
     if ch =~# '[ -~]'
       let s:state.query .= ch
+
+      " Browse: if query is a path ending in /, navigate there
+      if s:state.source ==# 'browse' && s:state.query =~# '/$\|\\$'
+        let nav_path = expand(s:state.query)
+        if isdirectory(nav_path)
+          call add(s:browse_history, s:browse_dir)
+          let s:browse_dir = fnamemodify(nav_path, ':p')
+          let s:state.items = neofinder#sources#gather_browse(s:browse_dir)
+          let s:state.query = ''
+          let s:state.cursor = 0
+          call s:refilter()
+          call s:redraw()
+          continue
+        endif
+      endif
+
       call s:refilter()
       call s:redraw()
       continue

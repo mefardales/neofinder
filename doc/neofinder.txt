@@ -1,11 +1,12 @@
-*neofinder.txt*  Matrix Edition fuzzy finder & sysadmin toolkit
+*neofinder.txt*  file browser, command runner & editor toolkit
 
                     _   _            _____ _           _~
                    | \ | | ___  ___ |  ___(_)_ __   __| | ___ _ __~
                    |  \| |/ _ \/ _ \| |_  | | '_ \ / _` |/ _ \ '__|~
                    | |\  |  __/ (_) |  _| | | | | | (_| |  __/ |~
                    |_| \_|\___|\___/|_|   |_|_| |_|\__,_|\___|_|~
-                                                    Matrix Edition~
+
+
 
 Author:  NeoFinder contributors
 License: MIT
@@ -28,8 +29,7 @@ CONTENTS                                            *neofinder-contents*
 ==============================================================================
 1. INTRODUCTION                                     *neofinder-intro*
 
-NeoFinder (Matrix Edition) is a pure-Vimscript fuzzy finder and sysadmin
-toolkit.  It replaces and extends ctrlp.vim with specialized sources for
+NeoFinder is a file browser, command runner and editor toolkit for Vim.  It replaces and extends ctrlp.vim with specialized sources for
 config files, logs, systemd services, SSH hosts, Ansible playbooks, and
 a persistent tagging/bookmarking system.
 

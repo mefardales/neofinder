@@ -1,4 +1,4 @@
-" neofinder.vim - Matrix Edition fuzzy finder & sysadmin toolkit
+" neofinder.vim - file browser, command runner & editor toolkit
 " Maintainer: NeoFinder contributors
 " Version:    2.0.0
 " License:    MIT
@@ -60,7 +60,7 @@ for [s:k, s:v] in items(s:defaults)
   endif
 endfor
 
-" Load user config.json (overrides defaults)
+" Load user config.toml (overrides defaults)
 call neofinder#config#load()
 
 " ---------------------------------------------------------------------------
