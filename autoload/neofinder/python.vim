@@ -83,11 +83,18 @@ function! s:scan_dir(dir) abort
   endif
   for f in glob(a:dir . '/*.py', 0, 1)
     let name = s:file_to_name(f)
-    " User commands don't overwrite built-ins
     if !has_key(s:registry, name)
       call s:register_file(name, f)
     endif
   endfor
+endfunction
+
+" Debug: show what was loaded (call with :call neofinder#python#debug())
+function! neofinder#python#debug() abort
+  echo 'script_dir: ' . s:script_dir
+  echo 'builtin_dir: ' . s:builtin_dir
+  echo 'exists: ' . isdirectory(s:builtin_dir)
+  echo 'registry: ' . string(keys(s:registry))
 endfunction
 
 " ---------------------------------------------------------------------------
