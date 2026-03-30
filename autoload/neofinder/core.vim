@@ -541,13 +541,13 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Resize finder panel: Shift+Up/Down, Ctrl+Up/Down, PageUp/PageDown
-    if ch ==# "\<S-Up>" || ch ==# "\<C-Up>" || ch ==# "\<PageUp>"
+    " Resize finder panel: PageUp/PageDown only (Shift+Arrow unreliable)
+    if ch ==# "\<PageUp>"
       resize +2
       call s:redraw()
       continue
     endif
-    if ch ==# "\<S-Down>" || ch ==# "\<C-Down>" || ch ==# "\<PageDown>"
+    if ch ==# "\<PageDown>"
       resize -2
       call s:redraw()
       continue
