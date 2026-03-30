@@ -5,70 +5,137 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NeoFinder Reference</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #222; background: #fff; line-height: 1.7; max-width: 780px; margin: 0 auto; padding: 30px 20px; }
-    h1 { font-size: 2em; border-bottom: 2px solid #222; padding-bottom: 8px; margin-top: 0; }
-    h2 { font-size: 1.4em; border-bottom: 1px solid #ccc; padding-bottom: 6px; margin-top: 40px; }
-    h3 { font-size: 1.1em; margin-top: 25px; }
-    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-    pre { background: #f4f4f4; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #333; background: #fff; line-height: 1.6; }
+
+    /* Layout: sidebar + content */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px; min-width: 240px; background: #f7f7f7; border-right: 1px solid #e0e0e0;
+      padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar .logo { font-weight: 700; font-size: 1.2em; padding: 0 20px 15px; border-bottom: 1px solid #e0e0e0; margin-bottom: 10px; color: #111; }
+    .sidebar a { display: block; padding: 5px 20px; color: #555; text-decoration: none; font-size: 0.88em; }
+    .sidebar a:hover { background: #eee; color: #111; }
+    .sidebar .section-label { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; color: #999; padding: 12px 20px 4px; font-weight: 600; }
+
+    /* Content */
+    .content { flex: 1; padding: 30px 40px; max-width: 840px; }
+
+    h1 { font-size: 1.8em; margin-bottom: 6px; color: #111; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    h2 { font-size: 1.35em; color: #111; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-top: 45px; margin-bottom: 15px; }
+    h3 { font-size: 1.05em; color: #444; margin-top: 22px; margin-bottom: 8px; }
+
+    p { margin-bottom: 10px; }
+    ul, ol { margin: 8px 0 12px 20px; }
+    li { margin: 3px 0; }
+
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.88em; font-family: "SF Mono", "Fira Code", Consolas, monospace; }
+    pre { background: #f8f8f8; border: 1px solid #e8e8e8; padding: 14px 16px; border-radius: 5px; overflow-x: auto; font-size: 0.84em; line-height: 1.55; margin: 10px 0 16px; }
     pre code { background: none; padding: 0; }
-    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #eee; }
-    th { font-weight: 600; border-bottom: 2px solid #ccc; }
-    td:first-child { font-family: monospace; white-space: nowrap; }
-    a { color: #0366d6; text-decoration: none; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 0.9em; }
+    th { text-align: left; padding: 8px 10px; background: #f7f7f7; border-bottom: 2px solid #ddd; font-weight: 600; color: #333; }
+    td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+    td:first-child { font-family: "SF Mono", Consolas, monospace; font-size: 0.88em; white-space: nowrap; color: #111; }
+
+    /* Two-column grids */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .card { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 6px; padding: 16px; }
+    .card h4 { margin: 0 0 6px; font-size: 0.95em; color: #111; }
+    .card p { font-size: 0.88em; color: #666; margin: 0; }
+
+    /* Side-by-side code */
+    .code-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    .code-pair pre { margin: 0; }
+    .code-label { font-size: 0.78em; font-weight: 600; color: #888; margin-bottom: 4px; }
+
+    /* Note callout */
+    .note { background: #f0f7ff; border-left: 3px solid #3b82f6; padding: 10px 14px; margin: 12px 0; border-radius: 3px; font-size: 0.9em; }
+
+    /* Install tabs */
+    .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    .install-card { background: #f8f8f8; border: 1px solid #e8e8e8; border-radius: 5px; padding: 12px 14px; }
+    .install-card .label { font-size: 0.78em; font-weight: 600; color: #888; margin-bottom: 6px; }
+    .install-card code { display: block; background: #fff; border: 1px solid #eee; padding: 8px 10px; border-radius: 3px; font-size: 0.82em; word-break: break-all; }
+
+    a { color: #2563eb; text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .toc { background: #f9f9f9; padding: 15px 20px; border-radius: 4px; margin: 20px 0; }
-    .toc ul { margin: 0; padding-left: 20px; }
-    .toc li { margin: 4px 0; }
-    .note { background: #f0f7ff; border-left: 4px solid #0366d6; padding: 10px 15px; margin: 15px 0; border-radius: 2px; }
     hr { border: none; border-top: 1px solid #eee; margin: 30px 0; }
-    .footer { text-align: center; color: #999; font-size: 0.85em; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; }
+    .footer { text-align: center; color: #aaa; font-size: 0.82em; padding: 30px 0; border-top: 1px solid #eee; margin-top: 40px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; min-width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #e0e0e0; padding: 15px 0; }
+      .content { padding: 20px 16px; }
+      .grid-2, .code-pair, .install-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 
-<h1>NeoFinder</h1>
-<p>File browser, command runner and editor toolkit for Vim/Neovim.<br>
-Pure Vimscript core + Python commands. Works on Linux, macOS, Windows.</p>
+<div class="layout">
 
-<div class="toc">
-  <strong>Contents</strong>
-  <ul>
-    <li><a href="#install">1. Installation</a></li>
-    <li><a href="#palette">2. Palette</a></li>
-    <li><a href="#keybindings">3. Keybindings</a></li>
-    <li><a href="#browser">4. File Browser</a></li>
-    <li><a href="#tags">5. Tags &amp; Favorites</a></li>
-    <li><a href="#commands">6. Command System</a></li>
-    <li><a href="#api">7. Python API</a></li>
-    <li><a href="#config">8. Configuration</a></li>
-    <li><a href="#themes">9. Themes</a></li>
-    <li><a href="#structure">10. Project Structure</a></li>
-  </ul>
+<!-- ==================== SIDEBAR ==================== -->
+<nav class="sidebar">
+  <div class="logo">NeoFinder</div>
+  <div class="section-label">Getting Started</div>
+  <a href="#install">Installation</a>
+  <a href="#palette">Palette</a>
+  <div class="section-label">Usage</div>
+  <a href="#keys-palette">Keybindings</a>
+  <a href="#browser">File Browser</a>
+  <a href="#tags">Tags &amp; Favorites</a>
+  <a href="#windows">Windows &amp; Buffers</a>
+  <div class="section-label">Commands</div>
+  <a href="#commands">Command System</a>
+  <a href="#api">Python API</a>
+  <a href="#builtin">Built-in Commands</a>
+  <div class="section-label">Settings</div>
+  <a href="#config">Configuration</a>
+  <a href="#themes">Themes</a>
+  <div class="section-label">Reference</div>
+  <a href="#structure">Project Structure</a>
+  <a href="https://github.com/mefardales/neofinder">GitHub</a>
+</nav>
+
+<!-- ==================== CONTENT ==================== -->
+<main class="content">
+
+<h1>NeoFinder</h1>
+<p class="subtitle">File browser, command runner and editor toolkit for Vim/Neovim.</p>
+
+<!-- ── INSTALL ── -->
+<h2 id="install">Installation</h2>
+
+<div class="install-grid">
+  <div class="install-card">
+    <div class="label">vim-plug</div>
+    <code>Plug 'mefardales/neofinder'</code>
+  </div>
+  <div class="install-card">
+    <div class="label">One-liner</div>
+    <code>curl -fsSL https://raw.githubusercontent.com/mefardales/neofinder/main/install.sh | bash</code>
+  </div>
+  <div class="install-card">
+    <div class="label">Vim 8+ native</div>
+    <code>git clone https://github.com/mefardales/neofinder.git ~/.vim/pack/plugins/start/neofinder</code>
+  </div>
+  <div class="install-card">
+    <div class="label">Neovim</div>
+    <code>git clone https://github.com/mefardales/neofinder.git ~/.local/share/nvim/site/pack/plugins/start/neofinder</code>
+  </div>
 </div>
 
-<!-- ============================================================ -->
-<h2 id="install">1. Installation</h2>
+<!-- ── PALETTE ── -->
+<h2 id="palette">Palette</h2>
 
-<h3>vim-plug</h3>
-<pre><code>Plug 'mefardales/neofinder'</code></pre>
-
-<h3>Vim 8+ native</h3>
-<pre><code>git clone https://github.com/mefardales/neofinder.git \
-    ~/.vim/pack/plugins/start/neofinder</code></pre>
-
-<h3>Neovim</h3>
-<pre><code>git clone https://github.com/mefardales/neofinder.git \
-    ~/.local/share/nvim/site/pack/plugins/start/neofinder</code></pre>
-
-<h3>One-liner</h3>
-<pre><code>curl -fsSL https://raw.githubusercontent.com/mefardales/neofinder/main/install.sh | bash</code></pre>
-
-<!-- ============================================================ -->
-<h2 id="palette">2. Palette</h2>
-
-<p>Open with <code>:Neo</code> or <code>&lt;Leader&gt;fp</code>. Everything starts here.</p>
+<p>Open with <code>:Neo</code> or <code>&lt;Leader&gt;fp</code>. Everything starts here:</p>
 
 <pre><code>Browse          :ff   file browser
 Favorites       :fv   bookmarked directories
@@ -79,143 +146,150 @@ Run             :fr   execute commands
 Commands        :fe   edit/create commands
 Config          :fc   config.toml</code></pre>
 
-<!-- ============================================================ -->
-<h2 id="keybindings">3. Keybindings</h2>
+<!-- ── KEYBINDINGS ── -->
+<h2 id="keys-palette">Keybindings</h2>
 
-<h3>Palette &amp; Navigation</h3>
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>&lt;Leader&gt;fp</td><td>Open palette</td></tr>
-  <tr><td>&lt;Leader&gt;ff</td><td>File browser</td></tr>
-  <tr><td>&lt;Leader&gt;fv</td><td>Favorites (bookmarked directories)</td></tr>
-  <tr><td>&lt;Leader&gt;fb</td><td>Buffer list</td></tr>
-  <tr><td>&lt;Leader&gt;fg</td><td>Tag groups</td></tr>
-  <tr><td>&lt;Leader&gt;ft</td><td>Tag current file</td></tr>
-  <tr><td>&lt;Leader&gt;fu</td><td>Untag current file</td></tr>
-  <tr><td>&lt;Leader&gt;fr</td><td>Run commands</td></tr>
-  <tr><td>&lt;Leader&gt;fe</td><td>Edit/create commands</td></tr>
-  <tr><td>&lt;Leader&gt;fc</td><td>Open config.toml</td></tr>
-</table>
-
-<h3>Inside the Finder</h3>
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>Up / Down</td><td>Navigate items</td></tr>
-  <tr><td>Enter</td><td>Open file / enter directory</td></tr>
-  <tr><td>Backspace</td><td>Go up (browse) / back to palette</td></tr>
-  <tr><td>Ctrl-V</td><td>Open in vertical split</td></tr>
-  <tr><td>Ctrl-X</td><td>Open in horizontal split</td></tr>
-  <tr><td>Ctrl-T</td><td>Tag file under cursor</td></tr>
-  <tr><td>Ctrl-D</td><td>Untag / delete buffer / remove favorite</td></tr>
-  <tr><td>Ctrl-B</td><td>Switch to buffer list</td></tr>
-  <tr><td>Ctrl-R</td><td>Refresh (clear cache, re-index)</td></tr>
-  <tr><td>Tab</td><td>Toggle focus: finder &harr; editor</td></tr>
-  <tr><td>Ctrl-W +/-</td><td>Resize panel</td></tr>
-  <tr><td>Esc</td><td>Close</td></tr>
-</table>
+<div class="grid-2">
+  <div>
+    <h3>Palette &amp; Navigation</h3>
+    <table>
+      <tr><td>&lt;Leader&gt;fp</td><td>Palette</td></tr>
+      <tr><td>&lt;Leader&gt;ff</td><td>File browser</td></tr>
+      <tr><td>&lt;Leader&gt;fv</td><td>Favorites</td></tr>
+      <tr><td>&lt;Leader&gt;fb</td><td>Buffers</td></tr>
+      <tr><td>&lt;Leader&gt;fg</td><td>Tag groups</td></tr>
+      <tr><td>&lt;Leader&gt;ft</td><td>Tag file</td></tr>
+      <tr><td>&lt;Leader&gt;fu</td><td>Untag file</td></tr>
+      <tr><td>&lt;Leader&gt;fr</td><td>Run commands</td></tr>
+      <tr><td>&lt;Leader&gt;fe</td><td>Edit commands</td></tr>
+      <tr><td>&lt;Leader&gt;fc</td><td>Config</td></tr>
+    </table>
+  </div>
+  <div>
+    <h3>Inside the Finder</h3>
+    <table>
+      <tr><td>Enter</td><td>Open / enter dir</td></tr>
+      <tr><td>Backspace</td><td>Go up / back</td></tr>
+      <tr><td>Ctrl-V</td><td>Vertical split</td></tr>
+      <tr><td>Ctrl-X</td><td>Horizontal split</td></tr>
+      <tr><td>Ctrl-T</td><td>Tag file</td></tr>
+      <tr><td>Ctrl-D</td><td>Untag / delete</td></tr>
+      <tr><td>Ctrl-B</td><td>Buffer list</td></tr>
+      <tr><td>Ctrl-R</td><td>Refresh cache</td></tr>
+      <tr><td>Tab</td><td>Finder &harr; editor</td></tr>
+      <tr><td>Ctrl-W +/-</td><td>Resize panel</td></tr>
+      <tr><td>Esc</td><td>Close</td></tr>
+    </table>
+  </div>
+</div>
 
 <h3>Search Modes</h3>
-<p>Type in the finder to filter. The mode is detected automatically:</p>
-<table>
-  <tr><th>Query</th><th>Mode</th><th>Example</th></tr>
-  <tr><td>main</td><td>Fuzzy</td><td>matches m-a-i-n anywhere</td></tr>
-  <tr><td>*.py</td><td>Glob</td><td>only .py files</td></tr>
-  <tr><td>test_*</td><td>Glob</td><td>files starting with test_</td></tr>
-  <tr><td>~/</td><td>Navigate</td><td>jump to home directory</td></tr>
-  <tr><td>/etc/</td><td>Navigate</td><td>jump to /etc</td></tr>
-  <tr><td>../</td><td>Navigate</td><td>go up one level</td></tr>
-</table>
+<p>The mode is detected automatically by what you type:</p>
+<div class="grid-2">
+  <table>
+    <tr><th>Query</th><th>Mode</th></tr>
+    <tr><td>main</td><td>Fuzzy match</td></tr>
+    <tr><td>*.py</td><td>Glob filter</td></tr>
+    <tr><td>test_*</td><td>Glob filter</td></tr>
+  </table>
+  <table>
+    <tr><th>Query</th><th>Mode</th></tr>
+    <tr><td>~/</td><td>Navigate to home</td></tr>
+    <tr><td>/etc/</td><td>Navigate to /etc</td></tr>
+    <tr><td>../</td><td>Go up one level</td></tr>
+  </table>
+</div>
 
-<h3>Window Management</h3>
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>&lt;Leader&gt;sv</td><td>Vertical split</td></tr>
-  <tr><td>&lt;Leader&gt;sh</td><td>Horizontal split</td></tr>
-  <tr><td>&lt;Leader&gt;sc</td><td>Close window</td></tr>
-  <tr><td>Shift+Tab</td><td>Cycle between windows</td></tr>
-  <tr><td>Shift+Arrow</td><td>Resize window</td></tr>
-</table>
+<!-- ── FILE BROWSER ── -->
+<h2 id="browser">File Browser</h2>
 
-<h3>Terminal</h3>
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>Shift+Tab</td><td>Switch from terminal to editor</td></tr>
-  <tr><td>Esc</td><td>Exit terminal mode (Neovim)</td></tr>
-  <tr><td>PageUp / PageDown</td><td>Scroll terminal output</td></tr>
-  <tr><td>i or a</td><td>Re-enter terminal mode</td></tr>
-</table>
+<p>Open with <code>&lt;Leader&gt;ff</code>. Lists current directory. Type to search.</p>
 
-<h3>Buffer Navigation</h3>
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>&lt;Leader&gt;bn</td><td>Next buffer</td></tr>
-  <tr><td>&lt;Leader&gt;bp</td><td>Previous buffer</td></tr>
-  <tr><td>&lt;Leader&gt;fb</td><td>Buffer list in finder</td></tr>
-</table>
+<div class="grid-2">
+  <div class="card">
+    <h4>Fuzzy &amp; Glob</h4>
+    <p>Type letters for fuzzy match. Use <code>*.py</code> or <code>test_*</code> for glob patterns.</p>
+  </div>
+  <div class="card">
+    <h4>Path Navigation</h4>
+    <p>Type <code>~/</code>, <code>/etc/</code>, or <code>../</code> to jump to any directory.</p>
+  </div>
+  <div class="card">
+    <h4>Cached &amp; Indexed</h4>
+    <p>Listings are cached. Python indexes the full tree on first search (lazy, non-blocking).</p>
+  </div>
+  <div class="card">
+    <h4>Auto-cd</h4>
+    <p>Set <code>autochdir = true</code> in config. cwd follows the active file.</p>
+  </div>
+</div>
 
-<!-- ============================================================ -->
-<h2 id="browser">4. File Browser</h2>
+<!-- ── TAGS & FAVORITES ── -->
+<h2 id="tags">Tags &amp; Favorites</h2>
 
-<p>Open with <code>&lt;Leader&gt;ff</code>. Lists the current directory. Type to search.</p>
+<div class="grid-2">
+  <div>
+    <h3>Tags</h3>
+    <p>Bookmark files into named groups.</p>
+    <table>
+      <tr><td>&lt;Leader&gt;ft</td><td>Tag current file</td></tr>
+      <tr><td>&lt;Leader&gt;fu</td><td>Untag current file</td></tr>
+      <tr><td>&lt;Leader&gt;fg</td><td>Browse groups</td></tr>
+      <tr><td>Ctrl-T</td><td>Tag in finder</td></tr>
+      <tr><td>Ctrl-D</td><td>Untag in finder</td></tr>
+    </table>
+    <p>Stored in <code>~/.neofinder/tags</code>:</p>
+    <pre><code>servers:/etc/nginx/nginx.conf
+dotfiles:/home/user/.bashrc</code></pre>
+  </div>
+  <div>
+    <h3>Favorites</h3>
+    <p>Bookmark directories for quick access.</p>
+    <table>
+      <tr><td>&lt;Leader&gt;fv</td><td>Open favorites</td></tr>
+      <tr><td>Enter on [+]</td><td>Add current dir</td></tr>
+      <tr><td>Enter</td><td>Open browser there</td></tr>
+      <tr><td>Ctrl-D</td><td>Remove favorite</td></tr>
+    </table>
+    <p>Stored in <code>~/.neofinder/favorites</code>, one dir per line.</p>
+  </div>
+</div>
 
-<ul>
-  <li><strong>Fuzzy search</strong> &mdash; type letters in order, matches anywhere</li>
-  <li><strong>Glob patterns</strong> &mdash; <code>*.py</code>, <code>*.toml</code>, <code>test_*</code></li>
-  <li><strong>Path navigation</strong> &mdash; type <code>~/</code>, <code>/etc/</code>, <code>../</code> to jump</li>
-  <li><strong>Cached</strong> &mdash; directory listings are cached, navigation is instant</li>
-  <li><strong>Background indexing</strong> &mdash; Python indexes the full tree on first search (lazy, non-blocking)</li>
-  <li><strong>Auto-cd</strong> &mdash; when <code>autochdir = true</code> in config, cwd follows the active file</li>
-</ul>
+<!-- ── WINDOWS ── -->
+<h2 id="windows">Windows &amp; Buffers</h2>
 
-<!-- ============================================================ -->
-<h2 id="tags">5. Tags &amp; Favorites</h2>
+<div class="grid-2">
+  <div>
+    <h3>Windows</h3>
+    <table>
+      <tr><td>&lt;Leader&gt;sv</td><td>Vertical split</td></tr>
+      <tr><td>&lt;Leader&gt;sh</td><td>Horizontal split</td></tr>
+      <tr><td>&lt;Leader&gt;sc</td><td>Close window</td></tr>
+      <tr><td>Shift+Tab</td><td>Cycle windows</td></tr>
+      <tr><td>Shift+Arrow</td><td>Resize</td></tr>
+    </table>
+  </div>
+  <div>
+    <h3>Buffers &amp; Terminal</h3>
+    <table>
+      <tr><td>&lt;Leader&gt;bn</td><td>Next buffer</td></tr>
+      <tr><td>&lt;Leader&gt;bp</td><td>Previous buffer</td></tr>
+      <tr><td>&lt;Leader&gt;fb</td><td>Buffer list</td></tr>
+      <tr><td>Shift+Tab</td><td>Terminal &rarr; editor</td></tr>
+      <tr><td>PageUp/Down</td><td>Scroll terminal</td></tr>
+    </table>
+  </div>
+</div>
 
-<h3>Tags</h3>
-<p>Bookmark files into named groups.</p>
+<!-- ── COMMAND SYSTEM ── -->
+<h2 id="commands">Command System</h2>
 
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>&lt;Leader&gt;ft</td><td>Tag current file (asks for group)</td></tr>
-  <tr><td>&lt;Leader&gt;fu</td><td>Untag current file</td></tr>
-  <tr><td>&lt;Leader&gt;fg</td><td>Browse tag groups</td></tr>
-  <tr><td>Ctrl-T</td><td>Tag file under cursor (inside finder)</td></tr>
-  <tr><td>Ctrl-D</td><td>Untag file under cursor (inside tag list)</td></tr>
-</table>
+<p>Every command is a <code>.toml</code> handler + <code>.py</code> logic. Create with palette &rarr; <code>Commands :fe</code> &rarr; <code>[+] New command</code>.</p>
 
-<p>Stored in <code>~/.neofinder/tags</code>:</p>
-<pre><code>servers:/etc/nginx/nginx.conf
-dotfiles:/home/user/.bashrc
-default:/var/log/syslog</code></pre>
-
-<h3>Favorites</h3>
-<p>Bookmark directories for quick access.</p>
-
-<table>
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>&lt;Leader&gt;fv</td><td>Open favorites list</td></tr>
-  <tr><td>Enter on [+]</td><td>Add current file's directory</td></tr>
-  <tr><td>Enter on favorite</td><td>Open browser there</td></tr>
-  <tr><td>Ctrl-D</td><td>Remove favorite</td></tr>
-</table>
-
-<p>Stored in <code>~/.neofinder/favorites</code>, one directory per line.</p>
-
-<!-- ============================================================ -->
-<h2 id="commands">6. Command System</h2>
-
-<p>Every command is two files: a <code>.toml</code> handler (contract) and a <code>.py</code> file (logic).</p>
-
-<h3>Create a command</h3>
-<ol>
-  <li>Open palette &rarr; <code>Commands :fe</code> &rarr; <code>[+] New command</code></li>
-  <li>Enter name (e.g. <code>DiskUsage</code>)</li>
-  <li>Both files open in vsplit. The <code>.py</code> has a full API reference in comments.</li>
-</ol>
-
-<p>Or create files manually in <code>~/.neofinder/python/</code>. Filename becomes command name: <code>disk_usage.py</code> &rarr; <code>DiskUsage</code>.</p>
-
-<h3>Handler (.toml)</h3>
-<pre><code># NetScan -- ping, DNS, port scan a host
+<div class="code-pair">
+  <div>
+    <div class="code-label">net_scan.toml</div>
+    <pre><code># NetScan -- port scan a host
 
 name = "NetScan"
 desc = "Port scan a host"
@@ -224,225 +298,222 @@ out = "[Scan ${host}]"
 
 [in]
 host = "Host/IP: "</code></pre>
+  </div>
+  <div>
+    <div class="code-label">net_scan.py</div>
+    <pre><code>STDOUT.print("Scanning %s..." % host)
 
-<h3>Logic (.py)</h3>
-<pre><code>STDOUT.print("Scanning %s..." % host)
-stdout, stderr, rc = nf.sh("ping -c 3 %s" % host)
+stdout, stderr, rc = nf.sh(
+    "ping -c 3 %s" % host
+)
 STDOUT.write(stdout.splitlines())
 
 if rc != 0:
     STDERR.print("Host unreachable")</code></pre>
+  </div>
+</div>
 
 <h3>Handler fields</h3>
 <table>
   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
   <tr><td>name</td><td>string</td><td>Command name (PascalCase)</td></tr>
-  <tr><td>desc</td><td>string</td><td>Description shown in palette</td></tr>
-  <tr><td>deps</td><td>array</td><td><code>"input"</code>, <code>"output"</code>, <code>"shell"</code>, <code>"buffer"</code>, <code>"tags"</code></td></tr>
+  <tr><td>desc</td><td>string</td><td>Description in palette</td></tr>
+  <tr><td>deps</td><td>array</td><td><code>input</code>, <code>output</code>, <code>shell</code>, <code>buffer</code>, <code>tags</code></td></tr>
   <tr><td>out</td><td>string</td><td>Output buffer title. Supports <code>${var}</code></td></tr>
-  <tr><td>pipe</td><td>string</td><td><code>"buffer"</code> to load current buffer into STDIN</td></tr>
-  <tr><td>[in]</td><td>section</td><td>Variables to ask the user. <code>key = "prompt"</code></td></tr>
+  <tr><td>pipe</td><td>string</td><td><code>"buffer"</code> loads current buffer into STDIN</td></tr>
+  <tr><td>[in]</td><td>section</td><td>Variables to ask user. <code>key = "prompt"</code></td></tr>
 </table>
 
 <h3>Standard I/O</h3>
-<p>Every command gets three streams:</p>
-<table>
-  <tr><th>Stream</th><th>Usage</th><th>Destination</th></tr>
-  <tr><td>STDIN</td><td><code>.text</code>, <code>.lines</code>, <code>.varname</code></td><td>Input from handler [in] or pipe</td></tr>
-  <tr><td>STDOUT</td><td><code>.print()</code>, <code>.write()</code></td><td>Auto-flushed to output buffer</td></tr>
-  <tr><td>STDERR</td><td><code>.print()</code>, <code>.write()</code></td><td>Auto-shown as errors</td></tr>
-</table>
+<div class="grid-2">
+  <div class="card">
+    <h4>STDIN</h4>
+    <p><code>.text</code> <code>.lines</code> <code>.varname</code><br>Input from handler [in] or pipe</p>
+  </div>
+  <div class="card">
+    <h4>STDOUT / STDERR</h4>
+    <p><code>.print()</code> <code>.write()</code><br>STDOUT &rarr; output buffer. STDERR &rarr; error messages.</p>
+  </div>
+</div>
 
-<h3>Built-in commands</h3>
-<table>
-  <tr><th>Command</th><th>Description</th></tr>
-  <tr><td>HelloWorld</td><td>System check</td></tr>
-  <tr><td>HelloDemo</td><td>Full API reference</td></tr>
-  <tr><td>RunHere</td><td>Run any shell command</td></tr>
-  <tr><td>GitLog</td><td>Recent git commits</td></tr>
-  <tr><td>GrepHere</td><td>Grep pattern in cwd</td></tr>
-  <tr><td>SortBuffer</td><td>Sort current buffer lines</td></tr>
-  <tr><td>TaggedFiles</td><td>Browse tags by group</td></tr>
-  <tr><td>NetInfo</td><td>Network interfaces, routes, DNS, ports</td></tr>
-  <tr><td>NetScan</td><td>Ping + DNS + port scan a host</td></tr>
-  <tr><td>NetConns</td><td>Active network connections</td></tr>
-</table>
+<!-- ── API ── -->
+<h2 id="api">Python API</h2>
 
-<!-- ============================================================ -->
-<h2 id="api">7. Python API</h2>
+<p>Available as <code>nf.*</code> inside every command.</p>
 
-<p>Available as <code>nf.*</code> inside every <code>.py</code> command.</p>
+<div class="grid-2">
+  <div>
+    <h3>Context</h3>
+    <pre><code>nf.file        # full path
+nf.filename    # name only
+nf.dir         # cwd
+nf.line        # current line
+nf.filetype
+nf.theme</code></pre>
 
-<h3>Context</h3>
-<pre><code>nf.file              # current file full path
-nf.filename          # file name only
-nf.dir               # working directory
-nf.line              # current line text
-nf.filetype          # file type
-nf.theme             # active theme name</code></pre>
+    <h3>Shell</h3>
+    <pre><code>out, err, rc = nf.sh("cmd")
+nf.sh_output("cmd")
+nf.sh_lines("cmd")</code></pre>
 
-<h3>Buffer</h3>
-<pre><code>nf.buf.lines         # all lines as list
-nf.buf.text          # full buffer as string
-nf.buf.name          # buffer filename
-nf.buf.line          # current line
-nf.buf.line_number   # current line number
-nf.buf.selection     # visual selection
+    <h3>Input</h3>
+    <pre><code>nf.input("prompt")
+nf.confirm("sure?")
+nf.select(["a", "b"])</code></pre>
+  </div>
+  <div>
+    <h3>Buffer</h3>
+    <pre><code>nf.buf.lines / .text / .name
+nf.buf.line / .line_number
+nf.buf.selection
+nf.buf.write(x)
+nf.buf.append(x)
+nf.buf.clear()
+nf.buf[0] = "x"</code></pre>
 
-nf.buf.write(x)      # replace buffer content
-nf.buf.append(x)     # append to buffer
-nf.buf.insert(x, n)  # insert at line n
-nf.buf.clear()       # clear buffer
-nf.buf[0]            # read line by index
-nf.buf[0] = "x"      # write line by index</code></pre>
+    <h3>Files &amp; Tags</h3>
+    <pre><code>nf.open(p) / .vsplit(p)
+nf.split(p) / .scratch(lines)
+nf.buffers()
+nf.tags.groups()
+nf.tags.files("group")
+nf.tags.add(path, "group")</code></pre>
 
-<h3>Shell</h3>
-<pre><code>stdout, stderr, rc = nf.sh("cmd")
-nf.sh_output("cmd")           # run & show in output buffer
-nf.sh_lines("cmd")            # returns list of lines</code></pre>
+    <h3>Messages</h3>
+    <pre><code>nf.echo("msg")
+nf.warn("msg")
+nf.error("msg")</code></pre>
+  </div>
+</div>
 
-<h3>User input</h3>
-<pre><code>nf.input("prompt")             # ask for text
-nf.confirm("sure?")            # yes/no dialog
-nf.select(["a", "b"])          # pick from list</code></pre>
+<!-- ── BUILT-IN ── -->
+<h2 id="builtin">Built-in Commands</h2>
 
-<h3>Tags</h3>
-<pre><code>nf.tags.groups()               # list group names
-nf.tags.files("group")         # files in group
-nf.tags.add(path, "group")     # tag a file
-nf.tags.remove(path)           # untag</code></pre>
+<div class="grid-2">
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td>HelloWorld</td><td>System check</td></tr>
+    <tr><td>HelloDemo</td><td>API reference</td></tr>
+    <tr><td>RunHere</td><td>Run shell command</td></tr>
+    <tr><td>GitLog</td><td>Git commits</td></tr>
+    <tr><td>GrepHere</td><td>Grep in cwd</td></tr>
+  </table>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td>SortBuffer</td><td>Sort buffer lines</td></tr>
+    <tr><td>TaggedFiles</td><td>Tags by group</td></tr>
+    <tr><td>NetInfo</td><td>Network info</td></tr>
+    <tr><td>NetScan</td><td>Port scan</td></tr>
+    <tr><td>NetConns</td><td>Connections</td></tr>
+  </table>
+</div>
 
-<h3>Files</h3>
-<pre><code>nf.open(path)                  # edit file
-nf.vsplit(path)                # vertical split
-nf.split(path)                 # horizontal split
-nf.scratch(lines, "title")     # new scratch buffer
-nf.buffers()                   # list open buffers</code></pre>
+<!-- ── CONFIG ── -->
+<h2 id="config">Configuration</h2>
 
-<h3>Messages</h3>
-<pre><code>nf.echo("msg")                 # green message
-nf.warn("msg")                 # yellow warning
-nf.error("msg")                # red error</code></pre>
+<p>All settings in <code>~/.neofinder/config.toml</code>. Open with <code>&lt;Leader&gt;fc</code>. Save to apply instantly.</p>
 
-<!-- ============================================================ -->
-<h2 id="config">8. Configuration</h2>
-
-<p>All settings in <code>~/.neofinder/config.toml</code>. Open with <code>&lt;Leader&gt;fc</code>. Saves with <code>:w</code> and reloads instantly.</p>
-
-<pre><code># Theme: "matrix", "dark", "cyberpunk", "default"
-[theme]
+<div class="code-pair">
+  <div>
+    <div class="code-label">Theme &amp; Finder</div>
+    <pre><code>[theme]
 name = "matrix"
 
-# Finder panel
 [finder]
 height = 15
 preview = true
-preview_width = 60
 max_files = 50000
 
-# Statusline
 [statusline]
-enabled = true
-
-# Editor
-[editor]
+enabled = true</code></pre>
+  </div>
+  <div>
+    <div class="code-label">Editor</div>
+    <pre><code>[editor]
 line_numbers = false
-wrap = true
 tabstop = 4
 expandtab = true
-encoding = "utf-8"
 autochdir = true
 hidden = true
 swapfile = false
 undofile = true
 splitright = true
-splitbelow = true
-mouse = "a"
-clipboard = "unnamedplus"
+mouse = "a"</code></pre>
+  </div>
+</div>
 
-# Search
-[search]
+<div class="code-pair">
+  <div>
+    <div class="code-label">Search &amp; Save</div>
+    <pre><code>[search]
 ignorecase = true
 smartcase = true
 hlsearch = true
 
-# Terminal
-[terminal]
-shell = ""                     # empty = system default
-
-# Auto-actions on save
 [on_save]
 trim_whitespace = true
-final_newline = true
-
-# Ignore patterns
-ignore = [".git", "node_modules", "__pycache__"]
-
-# Paths
-[paths]
-tags = "~/.neofinder/tags"
-commands = "~/.neofinder/python"
-undodir = "~/.neofinder/undo"
-
-# Keybindings
-[keybindings]
+final_newline = true</code></pre>
+  </div>
+  <div>
+    <div class="code-label">Keybindings</div>
+    <pre><code>[keybindings]
 enabled = true
 
-# Custom Vim key mappings
 [keybindings.map]
-# Ctrl+s = ":w&lt;CR&gt;"
-# F5 = ":!python3 %&lt;CR&gt;"
+Ctrl+s = ":w&lt;CR&gt;"
+F5 = ":!python3 %&lt;CR&gt;"
 
-# NeoFinder command bindings (single letter = &lt;Leader&gt;nf + letter)
+# Single letter = &lt;Leader&gt;nf + letter
 [keybindings.commands]
-# a = "NetInfo"                # &lt;Leader&gt;nfa
-# b = "NetScan"                # &lt;Leader&gt;nfb</code></pre>
+a = "NetInfo"
+b = "NetScan"</code></pre>
+  </div>
+</div>
 
-<!-- ============================================================ -->
-<h2 id="themes">9. Themes</h2>
+<!-- ── THEMES ── -->
+<h2 id="themes">Themes</h2>
 
-<table>
-  <tr><th>Theme</th><th>Description</th></tr>
-  <tr><td>matrix</td><td>Green on black (default)</td></tr>
-  <tr><td>dark</td><td>Subtle gray/white on dark</td></tr>
-  <tr><td>cyberpunk</td><td>Magenta/cyan neon</td></tr>
-  <tr><td>default</td><td>Vim native colors</td></tr>
-</table>
+<div class="grid-2">
+  <div class="card"><h4>matrix</h4><p>Green on black (default)</p></div>
+  <div class="card"><h4>dark</h4><p>Gray/white on dark</p></div>
+  <div class="card"><h4>cyberpunk</h4><p>Magenta/cyan neon</p></div>
+  <div class="card"><h4>default</h4><p>Vim native colors</p></div>
+</div>
 
-<p>Change in <code>config.toml</code>: set <code>name = "dark"</code> under <code>[theme]</code> and save.</p>
+<p>Change in config: <code>name = "dark"</code> under <code>[theme]</code> and save.</p>
 
-<!-- ============================================================ -->
-<h2 id="structure">10. Project Structure</h2>
+<!-- ── STRUCTURE ── -->
+<h2 id="structure">Project Structure</h2>
 
 <pre><code>neofinder/
-├── plugin/neofinder.vim              # Commands, mappings, startup
-├── autoload/neofinder.vim            # Palette, browse, backend detection
+├── plugin/neofinder.vim            Commands, mappings, startup
+├── autoload/neofinder.vim          Palette, browse, backend
 ├── autoload/neofinder/
-│   ├── core.vim                      # Finder UI, input loop, fuzzy/glob filter
-│   ├── theme.vim                     # Global themes
-│   ├── preview.vim                   # File preview pane
-│   ├── config.vim                    # TOML config loader + auto-reload
-│   ├── statusline.vim                # Powerline statusline
-│   ├── buffers.vim                   # Buffer manager, terminal
-│   ├── python.vim                    # Command system (.py + .toml)
-│   ├── tags.vim                      # Tags, favorites
-│   ├── sources.vim                   # Data gathering for all sources
-│   ├── actions.vim                   # Open, split, tag, execute actions
-│   ├── indexer.vim                   # Vim wrapper for Python indexer
-│   ├── indexer.py                    # Fast file indexer (os.walk)
-│   ├── runtime.py                    # Python runtime (nf.*, STDIN/STDOUT/STDERR)
-│   ├── toml_parser.py                # TOML parser for config + handlers
-│   └── commands/                     # Built-in commands (.toml + .py pairs)
-├── docs/index.html                   # This page
-├── install.sh                        # One-click installer
+│   ├── core.vim                    Finder UI, fuzzy/glob filter
+│   ├── config.vim                  TOML config loader
+│   ├── python.vim                  Command system (.py + .toml)
+│   ├── tags.vim                    Tags, favorites
+│   ├── actions.vim                 Open, split, tag, execute
+│   ├── sources.vim                 Data gathering
+│   ├── theme.vim                   Global themes
+│   ├── statusline.vim              Powerline statusline
+│   ├── preview.vim                 File preview
+│   ├── buffers.vim                 Buffer manager, terminal
+│   ├── indexer.vim + .py           Fast file indexer
+│   ├── runtime.py                  Python runtime (nf.*)
+│   ├── toml_parser.py              TOML parser
+│   └── commands/                   Built-in .toml + .py pairs
+├── docs/index.html                 This page
+├── install.sh
 └── README.md</code></pre>
-
-<hr>
 
 <div class="footer">
   <a href="https://github.com/mefardales/neofinder">GitHub</a> &middot;
   <a href="https://github.com/mefardales/neofinder/issues">Issues</a> &middot;
   MIT License
+</div>
+
+</main>
 </div>
 
 </body>
