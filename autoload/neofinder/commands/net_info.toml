@@ -1,0 +1,8 @@
+# ══════════════════════════════════════════════════════════
+# NetInfo -- network interfaces, routes, DNS, ports
+# ══════════════════════════════════════════════════════════
+
+name = "NetInfo"
+desc = "Network interfaces, IPs, routes, DNS"
+deps = ["output", "shell"]
+out = "[Network Info]"

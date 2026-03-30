@@ -1,6 +1,0 @@
-{
-  "name": "SortBuffer",
-  "desc": "Sort all lines in current buffer",
-  "deps": ["buffer"],
-  "pipe": "buffer"
-}

@@ -40,19 +40,17 @@ function! s:register_file(name, path) abort
   let s:registry[a:name] = {'file': a:path, 'desc': desc}
 endfunction
 
-" Read description: first try .json handler, then '# desc:' from .py
+" Read description from .toml handler or '# desc:' from .py
 function! s:read_desc(path) abort
-  " Try .json handler first
-  let json_path = substitute(a:path, '\.py$', '.json', '')
-  if filereadable(json_path)
-    try
-      let raw = join(readfile(json_path), '')
-      let data = json_decode(raw)
-      if type(data) == type({}) && has_key(data, 'desc')
-        return data.desc
+  " Try .toml handler first
+  let toml_path = substitute(a:path, '\.py$', '.toml', '')
+  if filereadable(toml_path)
+    for line in readfile(toml_path, '', 10)
+      let m = matchstr(line, '^desc\s*=\s*"\zs[^"]*')
+      if m !=# ''
+        return m
       endif
-    catch
-    endtry
+    endfor
   endif
   " Fallback: # desc: in .py
   let lines = readfile(a:path, '', 5)
@@ -110,40 +108,47 @@ function! neofinder#python#create(name) abort
   let filename = tolower(substitute(a:name, '\([A-Z]\)', '_\1', 'g'))
   let filename = substitute(filename, '^_', '', '')
   let py_path = dir . '/' . filename . '.py'
-  let json_path = dir . '/' . filename . '.json'
+  let toml_path = dir . '/' . filename . '.toml'
 
   if filereadable(py_path)
     echohl ErrorMsg | echo 'Already exists: ' . py_path | echohl None
     return ''
   endif
 
-  " Write .json handler
-  let json_lines = [
-        \ '{',
-        \ '  "name": "' . a:name . '",',
-        \ '  "desc": "TODO: describe this command",',
+  " Write .toml handler
+  let toml_lines = [
+        \ '# ══════════════════════════════════════════════════════════',
+        \ '# ' . a:name . ' -- Command Handler',
+        \ '# ══════════════════════════════════════════════════════════',
         \ '',
-        \ '  // ── deps: what this command uses ──────────────────',
-        \ '  // "input"  = asks user for variables (see "in")',
-        \ '  // "output" = writes to output buffer (STDOUT)',
-        \ '  // "shell"  = runs shell commands (nf.sh)',
-        \ '  // "buffer" = reads/writes current buffer (nf.buf)',
-        \ '  // "tags"   = accesses tag groups (nf.tags)',
-        \ '  "deps": ["output"],',
+        \ 'name = "' . a:name . '"',
+        \ 'desc = "TODO: describe this command"',
         \ '',
-        \ '  // ── in: variables to ask the user ─────────────────',
-        \ '  // Each key becomes a variable in your .py',
-        \ '  // "in": { "host": "Host/IP: ", "port": "Port: " },',
+        \ '# ── Dependencies ──────────────────────────────────────────',
+        \ '# What this command uses from the runtime:',
+        \ '#   "input"  = asks user for variables (see [in])',
+        \ '#   "output" = writes to output buffer (STDOUT)',
+        \ '#   "shell"  = runs shell commands (nf.sh)',
+        \ '#   "buffer" = reads/writes current buffer (nf.buf)',
+        \ '#   "tags"   = accesses tag groups (nf.tags)',
+        \ 'deps = ["output"]',
         \ '',
-        \ '  // ── out: output buffer title ──────────────────────',
-        \ '  // Use ${var} to interpolate input variables',
-        \ '  "out": "[' . a:name . ']"',
+        \ '# ── Input Variables ────────────────────────────────────────',
+        \ '# Each key becomes a variable injected into your .py',
+        \ '# The value is the prompt shown to the user',
+        \ '[in]',
+        \ '# host = "Host/IP: "',
+        \ '# port = "Port (8080): "',
         \ '',
-        \ '  // ── pipe: load buffer into STDIN ──────────────────',
-        \ '  // "pipe": "buffer"  -> STDIN.text / STDIN.lines',
-        \ '}',
+        \ '# ── Output ────────────────────────────────────────────────',
+        \ '# Title for the output buffer. Use ${var} to interpolate.',
+        \ 'out = "[' . a:name . ']"',
+        \ '',
+        \ '# ── Pipe ──────────────────────────────────────────────────',
+        \ '# Load current buffer content into STDIN before execution',
+        \ '# pipe = "buffer"    # STDIN.text / STDIN.lines',
         \ ]
-  call writefile(json_lines, json_path)
+  call writefile(toml_lines, toml_path)
 
   " Write .py template with full reference
   let py_lines = [

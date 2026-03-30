@@ -1,0 +1,8 @@
+# ══════════════════════════════════════════════════════════
+# SortBuffer -- sort current buffer lines
+# ══════════════════════════════════════════════════════════
+
+name = "SortBuffer"
+desc = "Sort all lines in current buffer"
+deps = ["buffer"]
+pipe = "buffer"    # loads buffer content into STDIN

@@ -1,0 +1,7 @@
+# ══════════════════════════════════════════════════════════
+# HelloWorld -- basic system check
+# ══════════════════════════════════════════════════════════
+
+name = "HelloWorld"
+desc = "NeoFinder info (basic system check)"
+deps = ["echo"]

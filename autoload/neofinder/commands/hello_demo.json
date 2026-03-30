@@ -1,6 +1,0 @@
-{
-  "name": "HelloDemo",
-  "desc": "Python API reference -> output buffer",
-  "deps": ["output"],
-  "out": "[NeoFinder API]"
-}

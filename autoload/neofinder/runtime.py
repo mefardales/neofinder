@@ -481,32 +481,101 @@ class _Stderr:
 
 
 # =========================================================================
-#  Handler: reads .json contract, prepares scope, executes .py
+#  TOML handler parser (reuse from toml_parser.py)
+# =========================================================================
+def _parse_handler_toml(path):
+    """Parse a command .toml handler file."""
+    # Import the toml parser that's already loaded or load it
+    import importlib.util
+    parser_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__
+        if '__file__' in dir() else
+        _vim.eval('substitute(expand("<sfile>:p:h"), "\\\\", "/", "g")') + '/runtime.py'
+    )), 'toml_parser.py')
+
+    # Direct simple parse since we already have one
+    if not _os.path.isfile(path):
+        return {}
+    try:
+        from toml_parser import parse_toml
+        return parse_toml(path)
+    except ImportError:
+        pass
+
+    # Inline mini parser as fallback
+    result = {}
+    section = result
+    section_name = ''
+    with open(path, 'r', encoding='utf-8') as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith('#'):
+                continue
+            # Strip inline comments
+            in_str = False
+            for i, ch in enumerate(line):
+                if ch == '"':
+                    in_str = not in_str
+                elif ch == '#' and not in_str:
+                    line = line[:i].rstrip()
+                    break
+            # Section
+            import re
+            m = re.match(r'^\[([^\]]+)\]$', line)
+            if m:
+                section_name = m.group(1).strip()
+                if section_name not in result:
+                    result[section_name] = {}
+                section = result[section_name]
+                continue
+            # Key = Value
+            m = re.match(r'^(\w+)\s*=\s*(.+)$', line)
+            if m:
+                key, val = m.group(1), m.group(2).strip()
+                if val == 'true': val = True
+                elif val == 'false': val = False
+                elif val.startswith('"') and val.endswith('"'): val = val[1:-1]
+                elif val.startswith("'") and val.endswith("'"): val = val[1:-1]
+                elif re.match(r'^-?\d+$', val): val = int(val)
+                elif val.startswith('[') and val.endswith(']'):
+                    inner = val[1:-1].strip()
+                    if inner:
+                        items = []
+                        for item in inner.split(','):
+                            item = item.strip().strip('"').strip("'")
+                            items.append(item)
+                        val = items
+                    else:
+                        val = []
+                section[key] = val
+    return result
+
+
+# =========================================================================
+#  Handler: reads .toml contract, prepares scope, executes .py
 # =========================================================================
 def _run_command(py_path):
     """
     Main entry point called by python.vim.
 
     Flow:
-      1. Read .json handler (contract)
+      1. Read .toml handler (contract)
       2. Create STDIN, STDOUT, STDERR
-      3. Process "in" -> populate STDIN + scope variables
-      4. Process "pipe" -> load buffer into STDIN if requested
+      3. Process [in] -> populate STDIN + scope variables
+      4. Process pipe -> load buffer into STDIN if requested
       5. Execute the .py
       6. Flush STDOUT to output buffer
       7. Show STDERR if any errors
     """
-    json_path = py_path.rsplit('.', 1)[0] + '.json'
+    toml_path = py_path.rsplit('.', 1)[0] + '.toml'
     handler = {}
 
     # 1) Read handler
-    if _os.path.isfile(json_path):
-        with open(json_path, 'r') as f:
-            try:
-                handler = _json.load(f)
-            except _json.JSONDecodeError:
-                nf.error("Bad JSON in: " + json_path)
-                return
+    if _os.path.isfile(toml_path):
+        try:
+            handler = _parse_handler_toml(toml_path)
+        except Exception as e:
+            nf.error("Bad TOML in: %s (%s)" % (toml_path, e))
+            return
 
     # 2) Create I/O streams
     stdin  = _Stdin()

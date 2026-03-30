@@ -1,9 +1,0 @@
-{
-  "name": "RunHere",
-  "desc": "Run shell command -> output buffer",
-  "deps": ["input", "output", "shell"],
-  "in": {
-    "cmd": "$ "
-  },
-  "out": "[$ ${cmd}]"
-}

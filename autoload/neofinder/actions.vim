@@ -99,19 +99,19 @@ function! s:action_edit(source, targets) abort
       if name !=# ''
         let path = neofinder#python#create(name)
         if path !=# ''
-          let json_path = substitute(path, '\.py$', '.json', '')
+          let json_path = substitute(path, '\.py$', '.toml', '')
           execute 'edit ' . fnameescape(json_path)
           execute 'vsplit ' . fnameescape(path)
           call s:setup_split_tab()
           echohl NeoFinderPrompt
-          echo '  Created: ' . fnamemodify(path, ':t') . ' + .json  [Shift+Tab to switch]'
+          echo '  Created: ' . fnamemodify(path, ':t') . ' + .toml  [Shift+Tab to switch]'
           echohl None
         endif
       endif
     else
       let path = matchstr(line, '\]\s\+\zs\S.*$')
       if path !=# '' && filereadable(path)
-        let json_path = substitute(path, '\.py$', '.json', '')
+        let json_path = substitute(path, '\.py$', '.toml', '')
         if filereadable(json_path)
           execute 'edit ' . fnameescape(json_path)
           execute 'vsplit ' . fnameescape(path)

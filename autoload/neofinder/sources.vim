@@ -382,7 +382,7 @@ function! s:gather_tabgroups() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" commands -- .py/.json files in commands dir + create new
+" commands -- .py/.toml files in commands dir + create new
 " ---------------------------------------------------------------------------
 function! s:gather_commands() abort
   let results = ['[+] New command']
@@ -393,8 +393,8 @@ function! s:gather_commands() abort
     endif
     for f in glob(dir . '/*.py', 0, 1)
       let name = fnamemodify(f, ':t')
-      let json = substitute(f, '\.py$', '.json', '')
-      let tag = filereadable(json) ? ' [ok]' : ' [no handler]'
+      let toml = substitute(f, '\.py$', '.toml', '')
+      let tag = filereadable(toml) ? ' [ok]' : ' [no handler]'
       call add(results, name . tag . '  ' . f)
     endfor
   endfor
