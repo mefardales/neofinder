@@ -170,16 +170,11 @@ function! s:apply_config(data) abort
     if has_key(e, 'backup')           | execute 'set ' . (e.backup ? '' : 'no') . 'backup' | endif
     if has_key(e, 'swapfile')         | execute 'set ' . (e.swapfile ? '' : 'no') . 'swapfile' | endif
     if has_key(e, 'undofile')         | execute 'set ' . (e.undofile ? '' : 'no') . 'undofile' | endif
-    if has_key(e, 'undodir')          | execute 'set undodir=' . expand(e.undodir) | endif
     if has_key(e, 'updatetime')       | execute 'set updatetime=' . e.updatetime | endif
     if has_key(e, 'timeoutlen')       | execute 'set timeoutlen=' . e.timeoutlen | endif
     if has_key(e, 'lazyredraw')       | execute 'set ' . (e.lazyredraw ? '' : 'no') . 'lazyredraw' | endif
     if has_key(e, 'splitright')       | execute 'set ' . (e.splitright ? '' : 'no') . 'splitright' | endif
     if has_key(e, 'splitbelow')       | execute 'set ' . (e.splitbelow ? '' : 'no') . 'splitbelow' | endif
-    if has_key(e, 'ignorecase')       | execute 'set ' . (e.ignorecase ? '' : 'no') . 'ignorecase' | endif
-    if has_key(e, 'smartcase')        | execute 'set ' . (e.smartcase ? '' : 'no') . 'smartcase' | endif
-    if has_key(e, 'incsearch')        | execute 'set ' . (e.incsearch ? '' : 'no') . 'incsearch' | endif
-    if has_key(e, 'hlsearch')         | execute 'set ' . (e.hlsearch ? '' : 'no') . 'hlsearch' | endif
     if has_key(e, 'list')             | execute 'set ' . (e.list ? '' : 'no') . 'list' | endif
     if has_key(e, 'listchars')
       try | execute 'set listchars=' . e.listchars | catch | endtry
@@ -207,9 +202,18 @@ function! s:apply_config(data) abort
   " Paths
   if has_key(a:data, 'paths')
     let p = a:data.paths
-    if has_key(p, 'tags')     | let g:neofinder.tag_file = expand(p.tags) | endif
-    if has_key(p, 'undodir')  | execute 'set undodir=' . expand(p.undodir) | endif
-    if has_key(p, 'backupdir') | execute 'set backupdir=' . expand(p.backupdir) | endif
+    if has_key(p, 'tags')      | let g:neofinder.tag_file = expand(p.tags) | endif
+    if has_key(p, 'commands')  | let g:neofinder.commands_dir = expand(p.commands) | endif
+    if has_key(p, 'undodir')
+      let udir = expand(p.undodir)
+      if !isdirectory(udir) | call mkdir(udir, 'p', 0700) | endif
+      execute 'set undodir=' . udir
+    endif
+    if has_key(p, 'backupdir')
+      let bdir = expand(p.backupdir)
+      if !isdirectory(bdir) | call mkdir(bdir, 'p', 0700) | endif
+      execute 'set backupdir=' . bdir
+    endif
   endif
 
   " Keybindings
@@ -355,7 +359,7 @@ function! s:create_default(path) abort
         \ 'autowrite = false              # auto-save before :make, :next, etc.',
         \ 'swapfile = false               # disable .swp files',
         \ 'backup = false                 # disable ~ backup files',
-        \ 'undofile = true                # persistent undo across sessions',
+        \ 'undofile = true                # persistent undo (see [paths] undodir)',
         \ '',
         \ '# Clipboard',
         \ 'mouse = "a"                    # "a" = all modes, "" = disabled',
@@ -372,7 +376,6 @@ function! s:create_default(path) abort
         \ '',
         \ '# Whitespace characters (when :set list)',
         \ 'list = false',
-        \ 'listchars = "tab:> ,trail:-,nbsp:+"',
         \ '',
         \ '# Spell check',
         \ 'spell = false',

@@ -94,7 +94,7 @@ endfunction
 
 " Public accessor for user commands directory
 function! neofinder#python#user_dir() abort
-  return expand('~/.neofinder/python')
+  return get(g:neofinder, 'commands_dir', expand('~/.neofinder/python'))
 endfunction
 
 " Create a new command from template
