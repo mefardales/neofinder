@@ -67,6 +67,7 @@ endfor
 command! -nargs=? Neo  call neofinder#palette(<q-args>)
 
 " Direct source commands (sysadmin speed)
+command! -nargs=? -complete=dir Nd call neofinder#browse(<q-args>)
 command! -nargs=? Nf   call neofinder#open('files', <q-args>)
 command! -nargs=? Nc   call neofinder#open('configs', <q-args>)
 command! -nargs=? Nl   call neofinder#open('logs', <q-args>)
@@ -87,6 +88,7 @@ command! -nargs=0 Nr   call neofinder#buffers#open_terminal()
 " ---------------------------------------------------------------------------
 if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fp :Neo<CR>
+  nnoremap <silent> <Leader>fd :Nd<CR>
   nnoremap <silent> <Leader>ff :Nf<CR>
   nnoremap <silent> <Leader>fc :Nc<CR>
   nnoremap <silent> <Leader>fl :Nl<CR>

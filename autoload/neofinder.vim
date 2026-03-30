@@ -53,6 +53,19 @@ function! neofinder#open(source, ...) abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" Browse a specific directory (or cwd if no arg)
+" ---------------------------------------------------------------------------
+function! neofinder#browse(...) abort
+  let dir = a:0 ? a:1 : ''
+  if dir ==# '' || !isdirectory(dir)
+    let dir = getcwd()
+  endif
+  let dir = fnamemodify(dir, ':p')
+  let g:neofinder._browse_dir = dir
+  call neofinder#open('browse', '')
+endfunction
+
+" ---------------------------------------------------------------------------
 " Command palette -- all actions in one fuzzy list
 " ---------------------------------------------------------------------------
 " Each entry:  'display label' -> [action_type, action_arg]
@@ -67,6 +80,7 @@ function! neofinder#palette(...) abort
 
   " -- Sources --
   let sources = [
+        \ ['Browse          :Nd   directory browser (navigate)',  'source', 'browse'],
         \ ['Files           :Nf   fuzzy file finder',            'source', 'files'],
         \ ['Configs         :Nc   /etc ~/.config nginx systemd', 'source', 'configs'],
         \ ['Logs            :Nl   /var/log browser',             'source', 'logs'],
@@ -218,6 +232,7 @@ function! neofinder#help() abort
         \ '  COMMANDS (type : then Tab)',
         \ '  --------------------------',
         \ '  :Neo          command palette (search everything)',
+        \ '  :Nd [path]    directory browser <Leader>fd',
         \ '  :Nf           files           <Leader>ff',
         \ '  :Nc           configs         <Leader>fc',
         \ '  :Nl           logs            <Leader>fl',

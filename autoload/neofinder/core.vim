@@ -23,6 +23,10 @@ let s:state = {
 " Navigation history stack  (list of source names)
 let s:nav_stack = []
 
+" Directory browser state
+let s:browse_dir = ''
+let s:browse_history = []
+
 " ---------------------------------------------------------------------------
 " Fuzzy match scoring
 " ---------------------------------------------------------------------------
@@ -84,6 +88,12 @@ function! neofinder#core#run(source, items, query) abort
   let s:state.cursor = 0
   let s:state.selected = {}
   let s:state.prevbuf = bufnr('%')
+
+  " Initialize directory browser state
+  if a:source ==# 'browse'
+    let s:browse_dir = get(g:neofinder, '_browse_dir', getcwd())
+    let s:browse_history = []
+  endif
 
   call neofinder#theme#apply()
 
@@ -188,12 +198,19 @@ function! s:redraw() abort
   let prompt = '  >> ' . s:state.query . '_'
   call setline(1, prompt)
 
-  " Status line -- show navigation hints
+  " Status line -- show navigation hints + browse dir
   let backend = neofinder#backend()
   let nav_hint = !empty(s:nav_stack) ? '  [BS] back' : ''
-  let status = printf('  [%s] %d/%d  |  %s  |  multi:%d%s',
-        \ toupper(s:state.source), matched, total, backend,
-        \ len(s:state.selected), nav_hint)
+  if s:state.source ==# 'browse'
+    let short_dir = substitute(s:browse_dir, '^' . expand('~'), '~', '')
+    let nav_hint = '  [BS] up  [Enter] open/enter'
+    let status = printf('  [BROWSE] %s  |  %d items%s',
+          \ short_dir, matched, nav_hint)
+  else
+    let status = printf('  [%s] %d/%d  |  %s  |  multi:%d%s',
+          \ toupper(s:state.source), matched, total, backend,
+          \ len(s:state.selected), nav_hint)
+  endif
   call setline(2, status)
 
   " Item lines
@@ -221,7 +238,12 @@ function! s:redraw() abort
         \ && s:state.source !=# 'help'
         \ && s:state.source !=# 'palette'
     if cur >= 0 && cur < matched
-      call neofinder#preview#show(filtered[cur], s:state.source)
+      let preview_path = filtered[cur]
+      " In browse mode, resolve to full path for preview
+      if s:state.source ==# 'browse' && s:browse_dir !=# ''
+        let preview_path = fnamemodify(s:browse_dir . '/' . preview_path, ':p')
+      endif
+      call neofinder#preview#show(preview_path, s:state.source)
     endif
   endif
 endfunction
@@ -271,8 +293,16 @@ function! s:input_loop() abort
       return
     endif
 
-    " Enter → accept
+    " Enter → accept (or enter directory in browse mode)
     if c == 13
+      if s:state.source ==# 'browse' && s:state.cursor < len(s:state.filtered)
+        let item = s:state.filtered[s:state.cursor]
+        if item =~# '/$'
+          " It's a directory → navigate into it
+          call s:browse_enter(item)
+          continue
+        endif
+      endif
       call s:accept('edit')
       return
     endif
@@ -320,6 +350,9 @@ function! s:input_loop() abort
         let s:state.query = s:state.query[:-2]
         call s:refilter()
         call s:redraw()
+      elseif s:state.source ==# 'browse' && !empty(s:browse_history)
+        " Browse mode: go up to parent directory
+        call s:browse_go_up()
       else
         " Empty query + backspace → go back to parent (or close)
         if s:go_back()
@@ -424,6 +457,39 @@ function! s:input_loop() abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" Directory browser: enter a subdirectory
+" ---------------------------------------------------------------------------
+function! s:browse_enter(dirname) abort
+  " Save current dir in history stack
+  call add(s:browse_history, s:browse_dir)
+  " Navigate into subdirectory
+  let s:browse_dir = fnamemodify(s:browse_dir . '/' . substitute(a:dirname, '/$', '', ''), ':p')
+  " Refresh items
+  let s:state.items = neofinder#sources#gather_browse(s:browse_dir)
+  let s:state.query = ''
+  let s:state.cursor = 0
+  let s:state.selected = {}
+  call s:refilter()
+  call s:redraw()
+endfunction
+
+" ---------------------------------------------------------------------------
+" Directory browser: go up to parent directory
+" ---------------------------------------------------------------------------
+function! s:browse_go_up() abort
+  if empty(s:browse_history)
+    return
+  endif
+  let s:browse_dir = remove(s:browse_history, -1)
+  let s:state.items = neofinder#sources#gather_browse(s:browse_dir)
+  let s:state.query = ''
+  let s:state.cursor = 0
+  let s:state.selected = {}
+  call s:refilter()
+  call s:redraw()
+endfunction
+
+" ---------------------------------------------------------------------------
 " Resize the preview pane by {delta} columns
 " ---------------------------------------------------------------------------
 function! s:resize_preview(delta) abort
@@ -470,7 +536,18 @@ function! s:accept(action) abort
     return
   endif
 
+  " In browse mode, resolve relative names to full paths
+  if s:state.source ==# 'browse'
+    let resolved = []
+    for t in targets
+      call add(resolved, fnamemodify(s:browse_dir . '/' . t, ':p'))
+    endfor
+    let targets = resolved
+  endif
+
   let source = s:state.source
+  let s:browse_dir = ''
+  let s:browse_history = []
   call s:cleanup()
 
   " Dispatch to actions

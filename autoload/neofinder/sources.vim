@@ -20,6 +20,8 @@ function! neofinder#sources#gather(source) abort
     return s:gather_hosts()
   elseif a:source ==# 'ansible'
     return s:gather_ansible()
+  elseif a:source ==# 'browse'
+    return s:gather_browse(get(g:neofinder, '_browse_dir', getcwd()))
   elseif a:source ==# 'scripts'
     return s:gather_scripts()
   elseif a:source ==# 'wordlists'
@@ -211,6 +213,66 @@ function! s:gather_ansible() abort
   endfor
 
   return results
+endfunction
+
+" ---------------------------------------------------------------------------
+" browse -- directory browser (files + dirs in a given path)
+"   Shows directories first (with trailing /), then files.
+"   Used by the directory navigation feature in core.vim.
+" ---------------------------------------------------------------------------
+function! s:gather_browse(dir) abort
+  let dir = fnamemodify(a:dir, ':p')
+  if !isdirectory(dir)
+    return ['(not a directory)']
+  endif
+
+  let results = []
+
+  " List directories first (with / suffix for easy identification)
+  let dirs = glob(dir . '*/', 0, 1) + glob(dir . '.*/', 0, 1)
+  for d in dirs
+    let name = fnamemodify(d, ':h:t')
+    " Skip . and ..
+    if name ==# '.' || name ==# '..'
+      continue
+    endif
+    " Skip ignored dirs
+    let dominated = 0
+    for ign in get(g:neofinder, 'ignore', [])
+      if name ==# ign || name ==# fnamemodify(ign, ':t')
+        let dominated = 1
+        break
+      endif
+    endfor
+    if dominated
+      continue
+    endif
+    call add(results, name . '/')
+  endfor
+  call sort(results)
+
+  " Then list files
+  let files = glob(dir . '*', 0, 1) + glob(dir . '.*', 0, 1)
+  let file_list = []
+  for f in files
+    if isdirectory(f)
+      continue
+    endif
+    let name = fnamemodify(f, ':t')
+    if name ==# '.' || name ==# '..'
+      continue
+    endif
+    call add(file_list, name)
+  endfor
+  call sort(file_list)
+  let results += file_list
+
+  return results
+endfunction
+
+" Gather browse items for a specific directory (public, called by core.vim)
+function! neofinder#sources#gather_browse(dir) abort
+  return s:gather_browse(a:dir)
 endfunction
 
 " ---------------------------------------------------------------------------
