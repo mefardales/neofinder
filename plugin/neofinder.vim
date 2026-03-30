@@ -115,6 +115,26 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <C-Right>  :vertical resize +3<CR>
   nnoremap <silent> <C-Up>     :resize +2<CR>
   nnoremap <silent> <C-Down>   :resize -2<CR>
+
+  " Terminal mode: Esc to normal, Shift+Tab to switch window, resize, scroll
+  if has('nvim')
+    tnoremap <silent> <S-Tab>   <C-\><C-n><C-w>w
+    tnoremap <silent> <Esc>     <C-\><C-n>
+    tnoremap <silent> <S-Up>    <C-\><C-n>:resize +2<CR>a
+    tnoremap <silent> <S-Down>  <C-\><C-n>:resize -2<CR>a
+    tnoremap <silent> <S-Left>  <C-\><C-n>:vertical resize -3<CR>a
+    tnoremap <silent> <S-Right> <C-\><C-n>:vertical resize +3<CR>a
+    tnoremap <silent> <PageUp>  <C-\><C-n><C-u>
+    tnoremap <silent> <PageDown> <C-\><C-n><C-d>
+  elseif has('terminal')
+    tnoremap <silent> <S-Tab>   <C-w>w
+    tnoremap <silent> <S-Up>    <C-w>:resize +2<CR>
+    tnoremap <silent> <S-Down>  <C-w>:resize -2<CR>
+    tnoremap <silent> <S-Left>  <C-w>:vertical resize -3<CR>
+    tnoremap <silent> <S-Right> <C-w>:vertical resize +3<CR>
+    tnoremap <silent> <PageUp>  <C-w>N<C-u>
+    tnoremap <silent> <PageDown> <C-w>N<C-d>
+  endif
 endif
 
 " ---------------------------------------------------------------------------
