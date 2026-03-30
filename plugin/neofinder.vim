@@ -151,10 +151,6 @@ command! -nargs=+ NeoPythonBind call neofinder#python#bind(<f-args>)
 augroup NeoFinderPython
   autocmd!
   autocmd VimEnter * call neofinder#python#autoload()
-  " Pre-index cwd for fast browse search
-  if has('python3')
-    autocmd VimEnter * call neofinder#indexer#start(getcwd())
-  endif
 augroup END
 
 " ---------------------------------------------------------------------------

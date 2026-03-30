@@ -229,6 +229,10 @@ function! s:refilter() abort
   " Browse + query + Python indexer = search entire project tree
   if s:state.source ==# 'browse' && s:state.query !=# '' && has('python3')
     let dir = get(g:neofinder, '_browse_dir', getcwd())
+    " Lazy start indexer on first search
+    if neofinder#indexer#count(dir) == 0 && !neofinder#indexer#is_indexing()
+      call neofinder#indexer#start(dir)
+    endif
     let results = neofinder#indexer#search(dir, s:state.query)
     if !empty(results)
       let s:state.filtered = results

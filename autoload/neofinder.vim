@@ -59,12 +59,6 @@ function! neofinder#browse(...) abort
   endif
   let dir = fnamemodify(dir, ':p')
   let g:neofinder._browse_dir = dir
-
-  " Start background indexing for fast search
-  if has('python3')
-    call neofinder#indexer#start(dir)
-  endif
-
   call neofinder#open('browse', '')
 endfunction
 
