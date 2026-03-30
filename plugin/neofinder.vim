@@ -60,6 +60,9 @@ for [s:k, s:v] in items(s:defaults)
   endif
 endfor
 
+" Load user config.json (overrides defaults)
+call neofinder#config#load()
+
 " ---------------------------------------------------------------------------
 " Commands -- short, unique prefixes for fast tab-complete
 " ---------------------------------------------------------------------------

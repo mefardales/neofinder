@@ -72,21 +72,18 @@ function! s:build_menu() abort
 
   " -- PATHS --
   call s:header('PATHS')
-  call s:item('Config paths',
-        \ s:short_list(get(g:neofinder, 'config_paths', [])),
-        \ 'edit_config_paths')
-  call s:item('Log paths',
-        \ s:short_list(get(g:neofinder, 'log_paths', [])),
-        \ 'edit_log_paths')
-  call s:item('Script paths',
-        \ s:short_list(get(g:neofinder, 'script_paths', [])),
-        \ 'edit_script_paths')
-  call s:item('Ignore patterns',
-        \ string(len(get(g:neofinder, 'ignore', []))) . ' rules',
-        \ 'edit_ignore')
-  call s:item('SSH config',
-        \ get(g:neofinder, 'ssh_config', '~/.ssh/config'),
-        \ 'set_ssh_config')
+  call s:item('Commands dir',
+        \ neofinder#python#user_dir(),
+        \ 'open_commands_dir')
+  call s:item('Edit config.json',
+        \ s:config_file_path(),
+        \ 'open_plugin_config')
+  call s:item('Save config',
+        \ 'write current state to json',
+        \ 'save_config')
+  call s:item('Reload config',
+        \ 'apply config.json now',
+        \ 'reload_config')
 
   " -- COMMANDS --
   call s:header('COMMANDS')
@@ -344,16 +341,29 @@ function! s:execute_action() abort
     let g:neofinder.max_files = vals[(idx + 1) % len(vals)]
 
   " -- Paths --
-  elseif a ==# 'edit_config_paths'
-    call s:edit_paths('config_paths', 'Config paths')
-  elseif a ==# 'edit_log_paths'
-    call s:edit_paths('log_paths', 'Log paths')
-  elseif a ==# 'edit_script_paths'
-    call s:edit_paths('script_paths', 'Script paths')
-  elseif a ==# 'edit_ignore'
-    call s:edit_paths('ignore', 'Ignore patterns')
-  elseif a ==# 'set_ssh_config'
-    call s:prompt_str('ssh_config', 'SSH config')
+  elseif a ==# 'open_commands_dir'
+    call s:close_panel()
+    let dir = neofinder#python#user_dir()
+    if !isdirectory(dir)
+      call mkdir(dir, 'p', 0700)
+    endif
+    call neofinder#browse(dir)
+  elseif a ==# 'open_plugin_config'
+    call s:close_panel()
+    let path = s:config_file_path()
+    if !filereadable(path)
+      call s:create_config_file(path)
+    endif
+    execute 'edit ' . fnameescape(path)
+  elseif a ==# 'save_config'
+    call neofinder#config#save()
+    sleep 500m
+  elseif a ==# 'reload_config'
+    call neofinder#config#load()
+    call neofinder#theme#apply()
+    call neofinder#theme#set_buffer_highlights()
+    echohl NeoFinderPrompt | echo '  Config reloaded' | echohl None
+    sleep 500m
 
   " -- Commands --
   elseif a ==# 'list_python'
@@ -369,56 +379,198 @@ endfunction
 " ===========================================================================
 " Helpers
 " ===========================================================================
-function! s:prompt_str(key, label) abort
-  let cur = get(g:neofinder, a:key, '')
-  call inputsave()
-  let val = input(a:label . ': ', cur, 'file')
-  call inputrestore()
-  if val !=# ''
-    let g:neofinder[a:key] = expand(val)
+function! s:config_file_path() abort
+  return expand('~/.neofinder/config.json')
+endfunction
+
+function! s:create_config_file(path) abort
+  let dir = fnamemodify(a:path, ':h')
+  if !isdirectory(dir)
+    call mkdir(dir, 'p', 0700)
+  endif
+  let lines = [
+        \ '{',
+        \ '  "_comment": "NeoFinder configuration - edit and reload with :Neo > Config > Reload",',
+        \ '',
+        \ '  "theme": {',
+        \ '    "name": "matrix",',
+        \ '    "_options": ["matrix", "dark", "cyberpunk", "default"],',
+        \ '    "ascii_statusline": false',
+        \ '  },',
+        \ '',
+        \ '  "finder": {',
+        \ '    "height": 15,',
+        \ '    "_height_options": [10, 15, 20, 25, 30],',
+        \ '    "preview": true,',
+        \ '    "preview_width": 60,',
+        \ '    "max_files": 50000,',
+        \ '    "_max_files_options": [10000, 25000, 50000, 100000]',
+        \ '  },',
+        \ '',
+        \ '  "statusline": {',
+        \ '    "enabled": true',
+        \ '  },',
+        \ '',
+        \ '  "editor": {',
+        \ '    "line_numbers": false,',
+        \ '    "relative_numbers": false,',
+        \ '    "wrap": true,',
+        \ '    "cursorline": false,',
+        \ '    "tabstop": 4,',
+        \ '    "_tabstop_options": [2, 4, 8],',
+        \ '    "expandtab": true,',
+        \ '    "encoding": "utf-8",',
+        \ '    "_encoding_options": ["utf-8", "latin1", "cp1252"]',
+        \ '  },',
+        \ '',
+        \ '  "ignore": [',
+        \ '    ".git",',
+        \ '    "node_modules",',
+        \ '    "__pycache__",',
+        \ '    ".cache",',
+        \ '    "/proc",',
+        \ '    "/sys",',
+        \ '    "/dev",',
+        \ '    "/run",',
+        \ '    "/snap",',
+        \ '    "/lost+found"',
+        \ '  ],',
+        \ '',
+        \ '  "paths": {',
+        \ '    "tags": "~/.neofinder/tags",',
+        \ '    "commands": "~/.neofinder/python"',
+        \ '  },',
+        \ '',
+        \ '  "keybindings": {',
+        \ '    "_comment": "Set to false to disable default mappings",',
+        \ '    "enabled": true,',
+        \ '    "leader_prefix": "<Leader>f"',
+        \ '  }',
+        \ '}',
+        \ ]
+  call writefile(lines, path)
+endfunction
+
+" Load config.json and apply to g:neofinder
+function! neofinder#config#load() abort
+  let path = s:config_file_path()
+  if !filereadable(path)
+    return
+  endif
+  try
+    let raw = join(readfile(path), '')
+    let data = json_decode(raw)
+  catch
+    echohl ErrorMsg | echo '[NeoFinder] Bad config.json: ' . v:exception | echohl None
+    return
+  endtry
+
+  " Theme
+  if has_key(data, 'theme')
+    let t = data.theme
+    if has_key(t, 'name')           | let g:neofinder.theme = t.name | endif
+    if has_key(t, 'ascii_statusline') | let g:neofinder.ascii_statusline = t.ascii_statusline | endif
+  endif
+
+  " Finder
+  if has_key(data, 'finder')
+    let f = data.finder
+    if has_key(f, 'height')        | let g:neofinder.height = f.height | endif
+    if has_key(f, 'preview')       | let g:neofinder.preview = f.preview | endif
+    if has_key(f, 'preview_width') | let g:neofinder.preview_width = f.preview_width | endif
+    if has_key(f, 'max_files')     | let g:neofinder.max_files = f.max_files | endif
+  endif
+
+  " Statusline
+  if has_key(data, 'statusline')
+    if has_key(data.statusline, 'enabled') | let g:neofinder.statusline = data.statusline.enabled | endif
+  endif
+
+  " Editor settings
+  if has_key(data, 'editor')
+    let e = data.editor
+    if has_key(e, 'line_numbers')     | execute 'set ' . (e.line_numbers ? '' : 'no') . 'number' | endif
+    if has_key(e, 'relative_numbers') | execute 'set ' . (e.relative_numbers ? '' : 'no') . 'relativenumber' | endif
+    if has_key(e, 'wrap')             | execute 'set ' . (e.wrap ? '' : 'no') . 'wrap' | endif
+    if has_key(e, 'cursorline')       | execute 'set ' . (e.cursorline ? '' : 'no') . 'cursorline' | endif
+    if has_key(e, 'tabstop')          | execute 'set tabstop=' . e.tabstop . ' shiftwidth=' . e.tabstop | endif
+    if has_key(e, 'expandtab')        | execute 'set ' . (e.expandtab ? '' : 'no') . 'expandtab' | endif
+    if has_key(e, 'encoding')         | try | execute 'set encoding=' . e.encoding | catch | endtry | endif
+  endif
+
+  " Ignore
+  if has_key(data, 'ignore')
+    let g:neofinder.ignore = data.ignore
+  endif
+
+  " Paths
+  if has_key(data, 'paths')
+    if has_key(data.paths, 'tags') | let g:neofinder.tag_file = expand(data.paths.tags) | endif
+  endif
+
+  " Keybindings
+  if has_key(data, 'keybindings')
+    if has_key(data.keybindings, 'enabled') && !data.keybindings.enabled
+      let g:neofinder.no_mappings = 1
+    endif
   endif
 endfunction
 
-function! s:edit_paths(key, label) abort
-  call s:close_panel()
-  let paths = copy(get(g:neofinder, a:key, []))
-  let home = expand('~')
+" Save current state back to config.json
+function! neofinder#config#save() abort
+  let path = s:config_file_path()
+  let dir = fnamemodify(path, ':h')
+  if !isdirectory(dir)
+    call mkdir(dir, 'p', 0700)
+  endif
 
-  while 1
-    redraw
-    echo '  ' . a:label . ':'
-    let idx = 0
-    for p in paths
-      let idx += 1
-      echo printf('  %d) %s', idx, substitute(p, '^' . home, '~', ''))
-    endfor
-    if empty(paths) | echo '  (empty)' | endif
-    echo ''
-    echo '  a=add  d<#>=delete  Enter=done'
+  let data = {
+        \ 'theme': {
+        \   'name': get(g:neofinder, 'theme', 'matrix'),
+        \   '_options': ['matrix', 'dark', 'cyberpunk', 'default'],
+        \   'ascii_statusline': get(g:neofinder, 'ascii_statusline', 0),
+        \ },
+        \ 'finder': {
+        \   'height': get(g:neofinder, 'height', 15),
+        \   '_height_options': [10, 15, 20, 25, 30],
+        \   'preview': get(g:neofinder, 'preview', 1),
+        \   'preview_width': get(g:neofinder, 'preview_width', 60),
+        \   'max_files': get(g:neofinder, 'max_files', 50000),
+        \   '_max_files_options': [10000, 25000, 50000, 100000],
+        \ },
+        \ 'statusline': {
+        \   'enabled': &statusline =~# 'neofinder#statusline' ? 1 : 0,
+        \ },
+        \ 'editor': {
+        \   'line_numbers': &number ? 1 : 0,
+        \   'relative_numbers': &relativenumber ? 1 : 0,
+        \   'wrap': &wrap ? 1 : 0,
+        \   'cursorline': &cursorline ? 1 : 0,
+        \   'tabstop': &tabstop,
+        \   '_tabstop_options': [2, 4, 8],
+        \   'expandtab': &expandtab ? 1 : 0,
+        \   'encoding': &encoding,
+        \   '_encoding_options': ['utf-8', 'latin1', 'cp1252'],
+        \ },
+        \ 'ignore': get(g:neofinder, 'ignore', []),
+        \ 'paths': {
+        \   'tags': get(g:neofinder, 'tag_file', '~/.neofinder/tags'),
+        \   'commands': neofinder#python#user_dir(),
+        \ },
+        \ 'keybindings': {
+        \   'enabled': !get(g:neofinder, 'no_mappings', 0) ? 1 : 0,
+        \   'leader_prefix': '<Leader>f',
+        \ },
+        \ }
 
-    call inputsave()
-    let c = input('> ')
-    call inputrestore()
+  let json = json_encode(data)
+  " Pretty print (basic: add newlines after { and , )
+  let json = substitute(json, '{', "{\n  ", 'g')
+  let json = substitute(json, '}', "\n}", 'g')
+  let json = substitute(json, ',', ",\n  ", 'g')
+  call writefile(split(json, "\n"), path)
 
-    if c ==# ''
-      break
-    elseif c ==# 'a'
-      call inputsave()
-      let p = input('  Path: ', '', 'dir')
-      call inputrestore()
-      if p !=# ''
-        call add(paths, expand(p))
-      endif
-    elseif c =~# '^d\s*\d\+$'
-      let n = str2nr(matchstr(c, '\d\+'))
-      if n >= 1 && n <= len(paths)
-        call remove(paths, n - 1)
-      endif
-    endif
-  endwhile
-
-  let g:neofinder[a:key] = paths
-  call s:reopen()
+  echohl NeoFinderPrompt | echo '  Config saved: ' . path | echohl None
 endfunction
 
 function! s:get_editor_option(opt) abort
