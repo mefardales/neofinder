@@ -486,8 +486,8 @@ function! s:input_loop() abort
       return
     endif
 
-    " Ctrl-Space → toggle multi-select on current item
-    if c == 0
+    " Ctrl-Space → toggle multi-select (not in palette)
+    if c == 0 && s:state.source !=# 'palette'
       if s:state.cursor < len(s:state.filtered)
         let item = s:state.filtered[s:state.cursor]
         if has_key(s:state.selected, item)
@@ -503,8 +503,8 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Ctrl-A → select all visible
-    if c == 1
+    " Ctrl-A → select all (not in palette)
+    if c == 1 && s:state.source !=# 'palette'
       for item in s:state.filtered
         let s:state.selected[item] = 1
       endfor
@@ -541,14 +541,16 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Resize finder panel: PageUp/PageDown only (Shift+Arrow unreliable)
-    if ch ==# "\<PageUp>"
-      resize +2
-      call s:redraw()
-      continue
-    endif
-    if ch ==# "\<PageDown>"
-      resize -2
+    " Resize finder panel: Ctrl-W +/- (standard Vim window resize)
+    if c == 23
+      " Ctrl-W pressed, get next char for sub-command
+      let c2 = getchar()
+      let ch2 = type(c2) == type(0) ? nr2char(c2) : c2
+      if ch2 ==# '+' || ch2 ==# '='
+        resize +3
+      elseif ch2 ==# '-'
+        resize -3
+      endif
       call s:redraw()
       continue
     endif
