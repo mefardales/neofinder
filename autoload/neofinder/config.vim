@@ -203,7 +203,6 @@ function! s:apply_config(data) abort
   if has_key(a:data, 'paths')
     let p = a:data.paths
     if has_key(p, 'tags')     | let g:neofinder.tag_file = expand(p.tags) | endif
-    if has_key(p, 'commands') | " informational, user_dir is fixed | endif
     if has_key(p, 'undodir')  | execute 'set undodir=' . expand(p.undodir) | endif
     if has_key(p, 'backupdir') | execute 'set backupdir=' . expand(p.backupdir) | endif
   endif
