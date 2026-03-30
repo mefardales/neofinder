@@ -15,7 +15,7 @@ function! neofinder#backend() abort
   elseif executable('fd')
     let s:backend = 'fd'
   else
-    let s:backend = 'find'
+    let s:backend = 'glob'
   endif
   return s:backend
 endfunction
@@ -35,11 +35,8 @@ function! neofinder#ignore_flags() abort
     for p in ignores
       call add(flags, '-E ' . shellescape(p))
     endfor
-  else
-    for p in ignores
-      call add(flags, '-not -path ' . shellescape('*' . p . '*'))
-    endfor
   endif
+  " glob backend handles ignores internally in s:glob_files()
   return join(flags, ' ')
 endfunction
 
@@ -80,16 +77,11 @@ function! neofinder#palette(...) abort
   let sources = [
         \ ['Files           :ff   fuzzy file finder',            'source', 'files'],
         \ ['Browse          :fd   directory browser',            'source', 'browse'],
-        \ ['Buffers         :fb   open buffers',                 'source', 'buffers'],
         \ ['Tags            :fg   tagged file groups',           'source', 'taggroups'],
-        \ ['Hosts           :fh   SSH hosts',                    'source', 'hosts'],
         \ ['Terminal        :fR   open terminal',                'source', 'terminal'],
-        \ ['Configs         :fc   /etc ~/.config',               'source', 'configs'],
-        \ ['Logs            :fl   /var/log',                     'source', 'logs'],
-        \ ['Services        :fs   systemd units',                'source', 'services'],
-        \ ['Scripts         :fk   ~/bin scripts',                'source', 'scripts'],
-        \ ['Run             :fr   execute commands',               'source', 'run'],
-        \ ['Commands        :fe   edit/create commands',          'source', 'commands'],
+        \ ['Run             :fr   execute commands',             'source', 'run'],
+        \ ['Commands        :fe   edit/create commands',         'source', 'commands'],
+        \ ['Config          F1    settings',                     'call',   'neofinder#config#open()'],
         \ ]
 
   for [label, type, arg] in sources

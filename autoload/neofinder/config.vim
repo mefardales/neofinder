@@ -1,7 +1,4 @@
-" neofinder#config  -- Quick settings panel for sysadmins
-"
-" Only things you'd actually change mid-session on a remote server.
-" Everything else belongs in your .vimrc.
+" neofinder#config  -- Settings panel for the plugin and the editor
 
 let s:config_bufnr = -1
 let s:config_winid = -1
@@ -16,7 +13,7 @@ function! neofinder#config#open() abort
 endfunction
 
 " ===========================================================================
-" Menu -- only stuff that matters in the field
+" Menu
 " ===========================================================================
 function! s:build_menu() abort
   let s:config_cursor = 0
@@ -31,31 +28,59 @@ function! s:build_menu() abort
           \ 'label': printf('  %s%s', t, m),
           \ 'type': 'action', 'action': 'switch_theme', 'value': t})
   endfor
-  call add(s:menu_items, {'label': '', 'type': 'separator'})
-  call add(s:menu_items, {
-        \ 'label': '  + Create custom theme...',
-        \ 'type': 'action', 'action': 'create_theme'})
 
-  " -- PATHS (the stuff that changes per server) --
-  call s:header('SEARCH PATHS')
+  " -- EDITOR --
+  call s:header('EDITOR')
+  let ed_num = s:get_editor_option('number')
+  let ed_rnum = s:get_editor_option('relativenumber')
+  call s:item('Line numbers',
+        \ ed_num ? (ed_rnum ? 'relative' : 'ON') : 'OFF',
+        \ 'cycle_numbers')
+  call s:item('Wrap',
+        \ s:get_editor_option('wrap') ? 'ON' : 'OFF',
+        \ 'toggle_wrap')
+  call s:item('Cursor line',
+        \ s:get_editor_option('cursorline') ? 'ON' : 'OFF',
+        \ 'toggle_cursorline')
+  call s:item('Paste mode',
+        \ &paste ? 'ON' : 'OFF',
+        \ 'toggle_paste')
+  call s:item('Tab size',
+        \ &tabstop . ' spaces',
+        \ 'cycle_tabsize')
+  call s:item('Expand tabs',
+        \ &expandtab ? 'spaces' : 'tabs',
+        \ 'toggle_expandtab')
+  call s:item('Encoding',
+        \ &encoding,
+        \ 'cycle_encoding')
+
+  " -- PLUGIN --
+  call s:header('PLUGIN')
+  call s:item('Statusline',
+        \ &statusline =~# 'neofinder#statusline' ? 'ON' : 'OFF',
+        \ 'toggle_statusline')
+  call s:item('Preview pane',
+        \ get(g:neofinder, 'preview', 1) ? 'ON' : 'OFF',
+        \ 'toggle_preview')
+  call s:item('Finder height',
+        \ get(g:neofinder, 'height', 15),
+        \ 'cycle_height')
+  call s:item('Max files',
+        \ get(g:neofinder, 'max_files', 50000),
+        \ 'cycle_max_files')
+
+  " -- PATHS --
+  call s:header('PATHS')
   call s:item('Config paths',
         \ s:short_list(get(g:neofinder, 'config_paths', [])),
         \ 'edit_config_paths')
   call s:item('Log paths',
         \ s:short_list(get(g:neofinder, 'log_paths', [])),
         \ 'edit_log_paths')
-  call s:item('Ansible paths',
-        \ s:short_list(get(g:neofinder, 'ansible_paths', [])),
-        \ 'edit_ansible_paths')
   call s:item('Script paths',
         \ s:short_list(get(g:neofinder, 'script_paths', [])),
         \ 'edit_script_paths')
-  call s:item('Wordlist paths',
-        \ s:short_list(get(g:neofinder, 'wordlist_paths', [])),
-        \ 'edit_wordlist_paths')
-  call s:item('Exploit paths',
-        \ s:short_list(get(g:neofinder, 'exploit_paths', [])),
-        \ 'edit_exploit_paths')
   call s:item('Ignore patterns',
         \ string(len(get(g:neofinder, 'ignore', []))) . ' rules',
         \ 'edit_ignore')
@@ -63,34 +88,15 @@ function! s:build_menu() abort
         \ get(g:neofinder, 'ssh_config', '~/.ssh/config'),
         \ 'set_ssh_config')
 
-  " -- PYTHON PLUGINS --
-  if has('python3')
-    call s:header('PYTHON PLUGINS')
-    let pycount = len(neofinder#python#list())
-    call s:item('Loaded',
-          \ pycount . ' commands',
-          \ 'list_python')
-    call s:item('Reload',
-          \ '~/.neofinder/python/',
-          \ 'reload_python')
-  endif
-
-  " -- QUICK TOGGLES (stuff you might flip mid-session) --
-  call s:header('QUICK TOGGLES')
-  call s:item('Statusline',
-        \ &statusline =~# 'neofinder#statusline' ? 'ON' : 'OFF',
-        \ 'toggle_statusline')
-  call s:item('Preview pane',
-        \ get(g:neofinder, 'preview', 1) ? 'ON' : 'OFF',
-        \ 'toggle_preview')
-  let ed_num = s:get_editor_option('number')
-  let ed_rnum = s:get_editor_option('relativenumber')
-  call s:item('Line numbers',
-        \ ed_num ? (ed_rnum ? 'relative' : 'ON') : 'OFF',
-        \ 'cycle_numbers')
-  call s:item('Paste mode',
-        \ &paste ? 'ON' : 'OFF',
-        \ 'toggle_paste')
+  " -- COMMANDS --
+  call s:header('COMMANDS')
+  let pycount = len(neofinder#python#list())
+  call s:item('Loaded',
+        \ pycount . ' commands',
+        \ 'list_python')
+  call s:item('Reload',
+        \ '~/.neofinder/python/',
+        \ 'reload_python')
 
   " -- INFO --
   call s:header('SYSTEM')
@@ -101,7 +107,7 @@ function! s:build_menu() abort
 endfunction
 
 " ===========================================================================
-" Menu builder helpers
+" Menu helpers
 " ===========================================================================
 function! s:header(t) abort
   call add(s:menu_items, {'label': '', 'type': 'separator'})
@@ -155,7 +161,7 @@ function! s:create_panel() abort
   botright new
   let s:config_bufnr = bufnr('%')
   let s:config_winid = win_getid()
-  execute 'resize ' . min([len(s:menu_items) + 4, 28])
+  execute 'resize ' . min([len(s:menu_items) + 4, 30])
   setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
   setlocal nowrap nonumber norelativenumber nospell
   setlocal nocursorline nocursorcolumn filetype=neofinder-config
@@ -258,6 +264,16 @@ function! s:panel_loop() abort
       call s:render_panel()
       continue
     endif
+    if ch ==# "\<S-Up>"
+      resize +2
+      call s:render_panel()
+      continue
+    endif
+    if ch ==# "\<S-Down>"
+      resize -2
+      call s:render_panel()
+      continue
+    endif
   endwhile
 endfunction
 
@@ -269,33 +285,77 @@ function! s:execute_action() abort
   if item.type !=# 'action' | return | endif
   let a = item.action
 
-  " Theme
+  " -- Theme --
   if a ==# 'switch_theme'
     let g:neofinder.theme = item.value
     call neofinder#theme#apply()
     call neofinder#theme#set_buffer_highlights()
-  elseif a ==# 'create_theme'
-    call s:create_theme()
 
-  " Paths
+  " -- Editor --
+  elseif a ==# 'cycle_numbers'
+    let ed_num = s:get_editor_option('number')
+    let ed_rnum = s:get_editor_option('relativenumber')
+    if !ed_num
+      call s:apply_to_all('number', 1)
+      call s:apply_to_all('relativenumber', 0)
+    elseif !ed_rnum
+      call s:apply_to_all('number', 1)
+      call s:apply_to_all('relativenumber', 1)
+    else
+      call s:apply_to_all('number', 0)
+      call s:apply_to_all('relativenumber', 0)
+    endif
+  elseif a ==# 'toggle_wrap'
+    let v = !s:get_editor_option('wrap')
+    call s:apply_to_all('wrap', v)
+  elseif a ==# 'toggle_cursorline'
+    let v = !s:get_editor_option('cursorline')
+    call s:apply_to_all('cursorline', v)
+  elseif a ==# 'toggle_paste'
+    set paste!
+  elseif a ==# 'cycle_tabsize'
+    let sizes = [2, 4, 8]
+    let cur = &tabstop
+    let idx = index(sizes, cur)
+    let next = sizes[(idx + 1) % len(sizes)]
+    execute 'set tabstop=' . next . ' shiftwidth=' . next
+  elseif a ==# 'toggle_expandtab'
+    set expandtab!
+  elseif a ==# 'cycle_encoding'
+    let encs = ['utf-8', 'latin1', 'cp1252']
+    let idx = index(encs, &encoding)
+    let next = encs[(idx + 1) % len(encs)]
+    execute 'set encoding=' . next
+
+  " -- Plugin --
+  elseif a ==# 'toggle_statusline'
+    call neofinder#statusline#toggle()
+  elseif a ==# 'toggle_preview'
+    let g:neofinder.preview = !get(g:neofinder, 'preview', 1)
+  elseif a ==# 'cycle_height'
+    let heights = [10, 15, 20, 25]
+    let cur = get(g:neofinder, 'height', 15)
+    let idx = index(heights, cur)
+    let g:neofinder.height = heights[(idx + 1) % len(heights)]
+  elseif a ==# 'cycle_max_files'
+    let vals = [10000, 25000, 50000, 100000]
+    let cur = get(g:neofinder, 'max_files', 50000)
+    let idx = index(vals, cur)
+    let g:neofinder.max_files = vals[(idx + 1) % len(vals)]
+
+  " -- Paths --
   elseif a ==# 'edit_config_paths'
     call s:edit_paths('config_paths', 'Config paths')
   elseif a ==# 'edit_log_paths'
     call s:edit_paths('log_paths', 'Log paths')
-  elseif a ==# 'edit_ansible_paths'
-    call s:edit_paths('ansible_paths', 'Ansible paths')
   elseif a ==# 'edit_script_paths'
     call s:edit_paths('script_paths', 'Script paths')
-  elseif a ==# 'edit_wordlist_paths'
-    call s:edit_paths('wordlist_paths', 'Wordlist paths')
-  elseif a ==# 'edit_exploit_paths'
-    call s:edit_paths('exploit_paths', 'Exploit paths')
   elseif a ==# 'edit_ignore'
     call s:edit_paths('ignore', 'Ignore patterns')
   elseif a ==# 'set_ssh_config'
     call s:prompt_str('ssh_config', 'SSH config')
 
-  " Python
+  " -- Commands --
   elseif a ==# 'list_python'
     call s:close_panel()
     call neofinder#python#show_list()
@@ -303,28 +363,6 @@ function! s:execute_action() abort
     call s:reopen()
   elseif a ==# 'reload_python'
     call neofinder#python#autoload()
-
-  " Quick toggles -- apply to ALL windows, not just the config panel
-  elseif a ==# 'toggle_statusline'
-    call neofinder#statusline#toggle()
-  elseif a ==# 'toggle_preview'
-    let g:neofinder.preview = !get(g:neofinder, 'preview', 1)
-  elseif a ==# 'cycle_numbers'
-    " Check state from a non-config window
-    let editor_num = s:get_editor_option('number')
-    let editor_rnum = s:get_editor_option('relativenumber')
-    if !editor_num
-      call s:apply_to_all_windows('number', 1)
-      call s:apply_to_all_windows('relativenumber', 0)
-    elseif !editor_rnum
-      call s:apply_to_all_windows('number', 1)
-      call s:apply_to_all_windows('relativenumber', 1)
-    else
-      call s:apply_to_all_windows('number', 0)
-      call s:apply_to_all_windows('relativenumber', 0)
-    endif
-  elseif a ==# 'toggle_paste'
-    set paste!
   endif
 endfunction
 
@@ -383,20 +421,6 @@ function! s:edit_paths(key, label) abort
   call s:reopen()
 endfunction
 
-function! s:create_theme() abort
-  call inputsave()
-  let name = input('Theme name: ')
-  call inputrestore()
-  if name ==# '' || name =~# '[^a-zA-Z0-9_-]'
-    return
-  endif
-  let base = deepcopy(neofinder#theme#get(get(g:neofinder, 'theme', 'matrix')))
-  let path = neofinder#theme#save(name, base)
-  echo "\n  Saved: " . path
-  sleep 600m
-endfunction
-
-" Get an option value from the first non-config editor window
 function! s:get_editor_option(opt) abort
   for win in range(1, winnr('$'))
     let bnr = winbufnr(win)
@@ -404,21 +428,16 @@ function! s:get_editor_option(opt) abort
       return getwinvar(win, '&' . a:opt)
     endif
   endfor
-  " Fallback: check global
   return eval('&' . a:opt)
 endfunction
 
-" Apply a window-local option to ALL windows (not just the config panel)
-function! s:apply_to_all_windows(option, value) abort
+function! s:apply_to_all(option, value) abort
   let save_win = win_getid()
-  " Set the global default so new windows inherit it
   execute 'set ' . a:option . (a:value ? '' : '!')
-  " Apply to every existing window
   for win in range(1, winnr('$'))
     execute win . 'wincmd w'
     execute 'setlocal ' . (a:value ? '' : 'no') . a:option
   endfor
-  " Return to config panel
   call win_gotoid(save_win)
 endfunction
 
@@ -427,8 +446,4 @@ function! s:reopen() abort
   call s:create_panel()
   call s:snap_cursor()
   call s:render_panel()
-endfunction
-
-function! neofinder#config#open_from_finder(source) abort
-  call neofinder#config#open()
 endfunction

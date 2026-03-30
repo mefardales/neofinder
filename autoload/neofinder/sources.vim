@@ -54,13 +54,14 @@ function! s:gather_files() abort
 
   if be ==# 'rg'
     let cmd = 'rg --files --hidden ' . ignore . ' 2>/dev/null | head -n ' . max
+    return s:run_cmd(cmd)
   elseif be ==# 'fd'
     let cmd = 'fd --type f --hidden ' . ignore . ' 2>/dev/null | head -n ' . max
+    return s:run_cmd(cmd)
   else
-    let cmd = 'find . -type f ' . ignore . ' 2>/dev/null | head -n ' . max
+    " Pure Vim fallback (works on Windows without rg/fd)
+    return s:glob_files(getcwd(), max)
   endif
-
-  return s:run_cmd(cmd)
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -70,22 +71,21 @@ function! s:gather_configs() abort
   let paths = get(g:neofinder, 'config_paths', ['/etc', expand('~/.config')])
   let max = get(g:neofinder, 'max_files', 50000)
   let be = neofinder#backend()
-  let results = []
 
+  if be ==# 'glob'
+    return s:glob_in_paths(paths, ['*'], max)
+  endif
+
+  let results = []
   for p in paths
-    if !isdirectory(p)
-      continue
-    endif
+    if !isdirectory(p) | continue | endif
     if be ==# 'rg'
       let cmd = 'rg --files --hidden ' . shellescape(p) . ' 2>/dev/null | head -n ' . max
-    elseif be ==# 'fd'
-      let cmd = 'fd --type f --hidden . ' . shellescape(p) . ' 2>/dev/null | head -n ' . max
     else
-      let cmd = 'find ' . shellescape(p) . ' -type f 2>/dev/null | head -n ' . max
+      let cmd = 'fd --type f --hidden . ' . shellescape(p) . ' 2>/dev/null | head -n ' . max
     endif
     let results += s:run_cmd(cmd)
   endfor
-
   return results
 endfunction
 
@@ -94,16 +94,22 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:gather_logs() abort
   let paths = get(g:neofinder, 'log_paths', ['/var/log'])
-  let results = []
+  let be = neofinder#backend()
 
+  if be ==# 'glob'
+    return s:glob_in_paths(paths, ['*.log', '*.txt', '*'], 5000)
+  endif
+
+  let results = []
   for p in paths
-    if !isdirectory(p)
-      continue
+    if !isdirectory(p) | continue | endif
+    if be ==# 'rg'
+      let cmd = 'rg --files ' . shellescape(p) . ' 2>/dev/null | head -n 5000'
+    else
+      let cmd = 'fd --type f . ' . shellescape(p) . ' 2>/dev/null | head -n 5000'
     endif
-    let cmd = 'find ' . shellescape(p) . ' -type f -readable 2>/dev/null | head -n 5000'
     let results += s:run_cmd(cmd)
   endfor
-
   return results
 endfunction
 
@@ -195,25 +201,21 @@ endfunction
 function! s:gather_ansible() abort
   let paths = get(g:neofinder, 'ansible_paths',
         \ ['/etc/ansible', expand('~/ansible'), expand('~/playbooks'), '.'])
-  let results = []
-  let exts = '*.yml,*.yaml,*.ini,*.cfg,*.j2,*.json'
+  let exts = ['*.yml', '*.yaml', '*.ini', '*.cfg', '*.j2', '*.json']
 
+  if neofinder#backend() ==# 'glob'
+    return s:glob_in_paths(paths, exts, 50000)
+  endif
+
+  let results = []
   for p in paths
-    if !isdirectory(p)
-      continue
-    endif
-    let be = neofinder#backend()
-    if be ==# 'rg'
+    if !isdirectory(p) | continue | endif
+    if neofinder#backend() ==# 'rg'
       let cmd = 'rg --files --hidden -g "*.yml" -g "*.yaml" -g "*.ini" -g "*.cfg" -g "*.j2" -g "*.json" '
             \ . shellescape(p) . ' 2>/dev/null'
-    elseif be ==# 'fd'
+    else
       let cmd = 'fd -e yml -e yaml -e ini -e cfg -e j2 -e json --type f . '
             \ . shellescape(p) . ' 2>/dev/null'
-    else
-      let cmd = 'find ' . shellescape(p)
-            \ . ' \( -name "*.yml" -o -name "*.yaml" -o -name "*.ini"'
-            \ . ' -o -name "*.cfg" -o -name "*.j2" -o -name "*.json" \)'
-            \ . ' -type f 2>/dev/null'
     endif
     let results += s:run_cmd(cmd)
   endfor
@@ -288,12 +290,17 @@ function! s:gather_scripts() abort
   let paths = get(g:neofinder, 'script_paths', [
         \ expand('~/bin'), expand('~/scripts'), expand('~/.local/bin'),
         \ '/usr/local/bin', '/usr/local/sbin'])
+  if neofinder#backend() ==# 'glob'
+    return s:glob_in_paths(paths, ['*'], 5000)
+  endif
   let results = []
   for p in paths
-    if !isdirectory(p)
-      continue
+    if !isdirectory(p) | continue | endif
+    if neofinder#backend() ==# 'rg'
+      let cmd = 'rg --files ' . shellescape(p) . ' 2>/dev/null | head -n 5000'
+    else
+      let cmd = 'fd --type f . ' . shellescape(p) . ' 2>/dev/null | head -n 5000'
     endif
-    let cmd = 'find ' . shellescape(p) . ' -type f 2>/dev/null | head -n 5000'
     let results += s:run_cmd(cmd)
   endfor
   return results
@@ -305,14 +312,18 @@ endfunction
 function! s:gather_wordlists() abort
   let paths = get(g:neofinder, 'wordlist_paths', [
         \ '/usr/share/wordlists', '/usr/share/seclists',
-        \ '/usr/share/dirb/wordlists', '/usr/share/dirbuster/wordlists',
         \ expand('~/wordlists')])
+  if neofinder#backend() ==# 'glob'
+    return s:glob_in_paths(paths, ['*.txt', '*.lst', '*.dic'], 10000)
+  endif
   let results = []
   for p in paths
-    if !isdirectory(p)
-      continue
+    if !isdirectory(p) | continue | endif
+    if neofinder#backend() ==# 'rg'
+      let cmd = 'rg --files -g "*.txt" -g "*.lst" -g "*.dic" ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
+    else
+      let cmd = 'fd -e txt -e lst -e dic --type f . ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
     endif
-    let cmd = 'find ' . shellescape(p) . ' -type f \( -name "*.txt" -o -name "*.lst" -o -name "*.dic" \) 2>/dev/null | head -n 10000'
     let results += s:run_cmd(cmd)
   endfor
   return results
@@ -326,18 +337,16 @@ function! s:gather_exploits() abort
         \ '/usr/share/exploitdb/exploits',
         \ '/usr/share/metasploit-framework/modules',
         \ expand('~/exploits'), expand('~/payloads')])
+  if neofinder#backend() ==# 'glob'
+    return s:glob_in_paths(paths, ['*'], 10000)
+  endif
   let results = []
   for p in paths
-    if !isdirectory(p)
-      continue
-    endif
-    let be = neofinder#backend()
-    if be ==# 'rg'
+    if !isdirectory(p) | continue | endif
+    if neofinder#backend() ==# 'rg'
       let cmd = 'rg --files ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
-    elseif be ==# 'fd'
-      let cmd = 'fd --type f . ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
     else
-      let cmd = 'find ' . shellescape(p) . ' -type f 2>/dev/null | head -n 10000'
+      let cmd = 'fd --type f . ' . shellescape(p) . ' 2>/dev/null | head -n 10000'
     endif
     let results += s:run_cmd(cmd)
   endfor
@@ -407,6 +416,40 @@ function! s:run_cmd(cmd) abort
   if v:shell_error && output ==# ''
     return []
   endif
-  let lines = split(output, "\n")
-  return lines
+  return split(output, "\n")
+endfunction
+
+" ---------------------------------------------------------------------------
+" Helper: pure Vim glob file finder (works everywhere, no external tools)
+" ---------------------------------------------------------------------------
+function! s:glob_files(dir, max) abort
+  let ignores = get(g:neofinder, 'ignore', [])
+  let cwd = fnamemodify(a:dir, ':p')
+  let all = glob(cwd . '**', 0, 1)
+  let results = []
+
+  for f in all
+    if isdirectory(f)
+      continue
+    endif
+    " Check ignore
+    let skip = 0
+    for ign in ignores
+      if f =~# escape(ign, '.\/')
+        let skip = 1
+        break
+      endif
+    endfor
+    if skip
+      continue
+    endif
+    " Relative path with forward slashes
+    let rel = substitute(f, '^' . escape(cwd, '.\\/'), '', '')
+    let rel = substitute(rel, '\\', '/', 'g')
+    call add(results, rel)
+    if len(results) >= a:max
+      break
+    endif
+  endfor
+  return results
 endfunction

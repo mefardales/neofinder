@@ -458,6 +458,18 @@ function! s:input_loop() abort
       continue
     endif
 
+    " Shift+Up / Shift+Down → resize finder panel
+    if ch ==# "\<S-Up>"
+      resize +2
+      call s:redraw()
+      continue
+    endif
+    if ch ==# "\<S-Down>"
+      resize -2
+      call s:redraw()
+      continue
+    endif
+
     " Right Arrow → shrink preview (more space for file list)
     if ch ==# "\<Right>"
       call s:resize_preview(-8)
