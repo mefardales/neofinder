@@ -224,63 +224,69 @@ function! s:gather_ansible() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" browse -- directory browser (files + dirs in a given path)
-"   Shows directories first (with trailing /), then files.
-"   Used by the directory navigation feature in core.vim.
+" browse -- directory browser with cache
 " ---------------------------------------------------------------------------
+let s:browse_cache = {}
+
 function! s:gather_browse(dir) abort
   let dir = fnamemodify(a:dir, ':p')
   if !isdirectory(dir)
     return ['(not a directory)']
   endif
 
+  " Return cached if available
+  if has_key(s:browse_cache, dir)
+    return s:browse_cache[dir]
+  endif
+
+  let ignores = get(g:neofinder, 'ignore', [])
   let results = []
 
-  " List directories first (with / suffix for easy identification)
-  let dirs = glob(dir . '*/', 0, 1) + glob(dir . '.*/', 0, 1)
-  for d in dirs
+  " Directories first
+  for d in glob(dir . '*/', 0, 1) + glob(dir . '.*/', 0, 1)
     let name = fnamemodify(d, ':h:t')
-    " Skip . and ..
-    if name ==# '.' || name ==# '..'
-      continue
-    endif
-    " Skip ignored dirs
-    let dominated = 0
-    for ign in get(g:neofinder, 'ignore', [])
+    if name ==# '.' || name ==# '..' | continue | endif
+    let skip = 0
+    for ign in ignores
       if name ==# ign || name ==# fnamemodify(ign, ':t')
-        let dominated = 1
-        break
+        let skip = 1 | break
       endif
     endfor
-    if dominated
-      continue
-    endif
-    call add(results, name . '/')
+    if !skip | call add(results, name . '/') | endif
   endfor
   call sort(results)
 
-  " Then list files
-  let files = glob(dir . '*', 0, 1) + glob(dir . '.*', 0, 1)
+  " Then files
   let file_list = []
-  for f in files
-    if isdirectory(f)
-      continue
-    endif
+  for f in glob(dir . '*', 0, 1) + glob(dir . '.*', 0, 1)
+    if isdirectory(f) | continue | endif
     let name = fnamemodify(f, ':t')
-    if name ==# '.' || name ==# '..'
-      continue
-    endif
+    if name ==# '.' || name ==# '..' | continue | endif
     call add(file_list, name)
   endfor
   call sort(file_list)
   let results += file_list
 
+  " Cache it
+  let s:browse_cache[dir] = results
   return results
 endfunction
 
-" Gather browse items for a specific directory (public, called by core.vim)
+" Public: get browse items (cached)
 function! neofinder#sources#gather_browse(dir) abort
   return s:gather_browse(a:dir)
+endfunction
+
+" Public: invalidate cache for a dir (or all)
+function! neofinder#sources#invalidate_cache(...) abort
+  if a:0
+    let dir = fnamemodify(a:1, ':p')
+    if has_key(s:browse_cache, dir)
+      call remove(s:browse_cache, dir)
+    endif
+  else
+    let s:browse_cache = {}
+  endif
 endfunction
 
 " ---------------------------------------------------------------------------

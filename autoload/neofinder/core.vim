@@ -66,18 +66,21 @@ function! s:fuzzy_score(pattern, str) abort
   return score
 endfunction
 
+let s:max_filter_results = 500
+
 function! s:filter_items(items, query) abort
   if a:query ==# ''
     return copy(a:items)
   endif
 
-  " Glob mode: if query contains * or ? use pattern matching
+  " Glob mode: if query contains * or ?
   if a:query =~# '[*?]'
     return s:filter_glob(a:items, a:query)
   endif
 
-  " Fuzzy mode (default)
+  " Fuzzy mode with early exit
   let scored = []
+  let limit = s:max_filter_results
   for item in a:items
     let sc = s:fuzzy_score(a:query, item)
     if sc >= 0
@@ -85,11 +88,13 @@ function! s:filter_items(items, query) abort
     endif
   endfor
   call sort(scored, {a, b -> b[0] - a[0]})
+  if len(scored) > limit
+    let scored = scored[:limit - 1]
+  endif
   return map(scored, 'v:val[1]')
 endfunction
 
 function! s:filter_glob(items, pattern) abort
-  " Convert glob to regex:  *.py -> .*\.py$   **/*.js -> .*\.js$
   let pat = a:pattern
   let pat = substitute(pat, '\.', '\\.', 'g')
   let pat = substitute(pat, '\*\*', '@@DSTAR@@', 'g')
@@ -99,9 +104,11 @@ function! s:filter_glob(items, pattern) abort
   let regex = '\c' . pat . '$'
 
   let results = []
+  let limit = s:max_filter_results
   for item in a:items
     if item =~# regex
       call add(results, item)
+      if len(results) >= limit | break | endif
     endif
   endfor
   return results
