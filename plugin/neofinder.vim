@@ -85,7 +85,8 @@ command! -nargs=? Nx   call neofinder#open('exploits', <q-args>)
 command! -nargs=? Nb   call neofinder#open('buffers', <q-args>)
 command! -nargs=? Ng   call neofinder#open('tabgroups', <q-args>)
 command! -nargs=0 Nr   call neofinder#buffers#open_terminal()
-command! -nargs=? Nrun call neofinder#open('commands', <q-args>)
+command! -nargs=? Nrun  call neofinder#open('run', <q-args>)
+command! -nargs=? Nedit call neofinder#open('commands', <q-args>)
 
 " ---------------------------------------------------------------------------
 " Default mappings (override with g:neofinder.no_mappings = 1)
@@ -110,6 +111,7 @@ if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fb :Nb<CR>
   nnoremap <silent> <Leader>fG :Ng<CR>
   nnoremap <silent> <Leader>fr :Nrun<CR>
+  nnoremap <silent> <Leader>fe :Nedit<CR>
   nnoremap <silent> <Leader>fR :Nr<CR>
 endif
 

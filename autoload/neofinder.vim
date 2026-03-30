@@ -88,7 +88,8 @@ function! neofinder#palette(...) abort
         \ ['Logs            :fl   /var/log',                     'source', 'logs'],
         \ ['Services        :fs   systemd units',                'source', 'services'],
         \ ['Scripts         :fk   ~/bin scripts',                'source', 'scripts'],
-        \ ['Commands        :fr   run commands',                 'source', 'commands'],
+        \ ['Run             :fr   execute commands',               'source', 'run'],
+        \ ['Commands        :fe   edit/create commands',          'source', 'commands'],
         \ ]
 
   for [label, type, arg] in sources

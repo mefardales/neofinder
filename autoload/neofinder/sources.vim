@@ -38,6 +38,8 @@ function! neofinder#sources#gather(source) abort
     return s:gather_tabgroups()
   elseif a:source ==# 'commands'
     return s:gather_commands()
+  elseif a:source ==# 'run'
+    return s:gather_run()
   endif
   return []
 endfunction
@@ -388,6 +390,13 @@ function! s:gather_commands() abort
     endfor
   endfor
   return results
+endfunction
+
+" ---------------------------------------------------------------------------
+" run -- command names for execution
+" ---------------------------------------------------------------------------
+function! s:gather_run() abort
+  return neofinder#python#list_detailed()
 endfunction
 
 " ---------------------------------------------------------------------------

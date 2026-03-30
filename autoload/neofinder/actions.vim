@@ -82,11 +82,46 @@ function! s:action_edit(source, targets) abort
     return
   endif
 
-  if a:source ==# 'commands'
-    " Extract command name from "  Name   [py]  description"
+  if a:source ==# 'run'
     let name = matchstr(a:targets[0], '^\s*\zs\S\+')
     if name !=# ''
       call neofinder#python#exec(name)
+    endif
+    return
+  endif
+
+  if a:source ==# 'commands'
+    let line = a:targets[0]
+    if line =~# '^\[+\]'
+      " Create new command
+      let name = input('Command name (PascalCase): ')
+      redraw
+      if name !=# ''
+        let path = neofinder#python#create(name)
+        if path !=# ''
+          " Open both files for editing
+          let json_path = substitute(path, '\.py$', '.json', '')
+          execute 'edit ' . fnameescape(json_path)
+          execute 'vsplit ' . fnameescape(path)
+          echohl NeoFinderPrompt
+          echo '  Created: ' . fnamemodify(path, ':t') . ' + .json'
+          echohl None
+        endif
+      endif
+    else
+      " Edit existing: extract path after the last space-space
+      let path = matchstr(line, '\S\+\.py\s*$')
+      " Also try to get the full path from after the tag
+      let path = matchstr(line, '\]\s\+\zs\S.*$')
+      if path !=# '' && filereadable(path)
+        let json_path = substitute(path, '\.py$', '.json', '')
+        if filereadable(json_path)
+          execute 'edit ' . fnameescape(json_path)
+          execute 'vsplit ' . fnameescape(path)
+        else
+          execute 'edit ' . fnameescape(path)
+        endif
+      endif
     endif
     return
   endif
