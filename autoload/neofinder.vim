@@ -81,7 +81,7 @@ function! neofinder#palette(...) abort
         \ ['Terminal        :fR   open terminal',                'source', 'terminal'],
         \ ['Run             :fr   execute commands',             'source', 'run'],
         \ ['Commands        :fe   edit/create commands',         'source', 'commands'],
-        \ ['Config          F1    settings',                     'call',   'neofinder#config#open()'],
+        \ ['Config          :fc   config.json',                  'call',   'neofinder#config#open()'],
         \ ]
 
   for [label, type, arg] in sources

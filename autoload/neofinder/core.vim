@@ -70,6 +70,13 @@ function! s:filter_items(items, query) abort
   if a:query ==# ''
     return copy(a:items)
   endif
+
+  " Glob mode: if query contains * or ? use pattern matching
+  if a:query =~# '[*?]'
+    return s:filter_glob(a:items, a:query)
+  endif
+
+  " Fuzzy mode (default)
   let scored = []
   for item in a:items
     let sc = s:fuzzy_score(a:query, item)
@@ -79,6 +86,25 @@ function! s:filter_items(items, query) abort
   endfor
   call sort(scored, {a, b -> b[0] - a[0]})
   return map(scored, 'v:val[1]')
+endfunction
+
+function! s:filter_glob(items, pattern) abort
+  " Convert glob to regex:  *.py -> .*\.py$   **/*.js -> .*\.js$
+  let pat = a:pattern
+  let pat = substitute(pat, '\.', '\\.', 'g')   " escape dots
+  let pat = substitute(pat, '\*\*', '@@DSTAR@@', 'g')
+  let pat = substitute(pat, '\*', '[^/]*', 'g')  " * = anything except /
+  let pat = substitute(pat, '@@DSTAR@@', '.*', 'g') " ** = anything
+  let pat = substitute(pat, '?', '.', 'g')       " ? = single char
+  let regex = pat . '$'
+
+  let results = []
+  for item in a:items
+    if tolower(item) =~# tolower(regex)
+      call add(results, item)
+    endif
+  endfor
+  return results
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -231,7 +257,7 @@ function! s:redraw() abort
   let tab_hint = '  [Tab] editor'
   if s:state.source ==# 'browse'
     let short_dir = substitute(s:browse_dir, '^' . expand('~'), '~', '')
-    let nav_hint = '  [BS] up  [Enter] open/enter'
+    let nav_hint = '  [BS] up  [Enter] open  [C-t] tag'
     let status = printf('  [BROWSE] %s  |  %d items%s%s',
           \ short_dir, matched, nav_hint, tab_hint)
   else
@@ -353,10 +379,24 @@ function! s:input_loop() abort
       return
     endif
 
-    " Ctrl-T → tail -f
+    " Ctrl-T → tag current item to a group
     if c == 20
-      call s:accept('tail')
-      return
+      if s:state.cursor >= 0 && s:state.cursor < len(s:state.filtered)
+        let item = s:state.filtered[s:state.cursor]
+        " Resolve full path for browse mode
+        if s:state.source ==# 'browse' && s:browse_dir !=# ''
+          let item = fnamemodify(s:browse_dir . '/' . item, ':p')
+        endif
+        " Don't tag directories
+        if item !~# '/$'
+          let group = input('Tag group (default): ')
+          redraw
+          call neofinder#tags#add(item, group)
+          sleep 400m
+        endif
+      endif
+      call s:redraw()
+      continue
     endif
 
     " Ctrl-R → systemctl restart
@@ -458,13 +498,13 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Shift+Up / Shift+Down → resize finder panel
-    if ch ==# "\<S-Up>"
+    " Resize finder panel: Shift+Up/Down, Ctrl+Up/Down, PageUp/PageDown
+    if ch ==# "\<S-Up>" || ch ==# "\<C-Up>" || ch ==# "\<PageUp>"
       resize +2
       call s:redraw()
       continue
     endif
-    if ch ==# "\<S-Down>"
+    if ch ==# "\<S-Down>" || ch ==# "\<C-Down>" || ch ==# "\<PageDown>"
       resize -2
       call s:redraw()
       continue
@@ -482,15 +522,6 @@ function! s:input_loop() abort
       continue
     endif
 
-    " F1 → open config panel
-    if ch ==# "\<F1>"
-      call s:cleanup()
-      call neofinder#config#open()
-      " After config closes, return to palette
-      let s:nav_stack = []
-      call neofinder#palette('')
-      return
-    endif
 
     " Printable character → add to query
     if ch =~# '[ -~]'

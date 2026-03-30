@@ -96,26 +96,15 @@ command! -nargs=? Nedit call neofinder#open('commands', <q-args>)
 " ---------------------------------------------------------------------------
 if !get(g:neofinder, 'no_mappings', 0)
   nnoremap <silent> <Leader>fp :Neo<CR>
-  nnoremap <silent> <Leader>fd :Nd<CR>
   nnoremap <silent> <Leader>ff :Nf<CR>
-  nnoremap <silent> <Leader>fc :Nc<CR>
-  nnoremap <silent> <Leader>fl :Nl<CR>
-  nnoremap <silent> <Leader>fs :Ns<CR>
-  nnoremap <silent> <Leader>fj :Nj<CR>
-  nnoremap <silent> <Leader>fh :Nh<CR>
-  nnoremap <silent> <Leader>fa :Na<CR>
+  nnoremap <silent> <Leader>fd :Nd<CR>
+  nnoremap <silent> <Leader>fg :NTg<CR>
   nnoremap <silent> <Leader>ft :Nt<CR>
   nnoremap <silent> <Leader>fu :Nu<CR>
-  nnoremap <silent> <Leader>fg :NTg<CR>
-  nnoremap <silent> <Leader>fT :NTa<CR>
-  nnoremap <silent> <Leader>fk :Nk<CR>
-  nnoremap <silent> <Leader>fw :Nw<CR>
-  nnoremap <silent> <Leader>fx :Nx<CR>
-  nnoremap <silent> <Leader>fb :Nb<CR>
-  nnoremap <silent> <Leader>fG :Ng<CR>
+  nnoremap <silent> <Leader>fR :Nr<CR>
   nnoremap <silent> <Leader>fr :Nrun<CR>
   nnoremap <silent> <Leader>fe :Nedit<CR>
-  nnoremap <silent> <Leader>fR :Nr<CR>
+  nnoremap <silent> <Leader>fc :call neofinder#config#open()<CR>
 endif
 
 " ---------------------------------------------------------------------------

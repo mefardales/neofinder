@@ -424,18 +424,23 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:glob_files(dir, max) abort
   let ignores = get(g:neofinder, 'ignore', [])
-  let cwd = fnamemodify(a:dir, ':p')
-  let all = glob(cwd . '**', 0, 1)
+  let cwd = substitute(fnamemodify(a:dir, ':p'), '\\', '/', 'g')
+  if cwd !~# '/$'
+    let cwd .= '/'
+  endif
+
+  let all = glob(cwd . '**/*', 0, 1)
   let results = []
 
   for f in all
     if isdirectory(f)
       continue
     endif
+    let fslash = substitute(f, '\\', '/', 'g')
     " Check ignore
     let skip = 0
     for ign in ignores
-      if f =~# escape(ign, '.\/')
+      if stridx(fslash, ign) >= 0
         let skip = 1
         break
       endif
@@ -443,9 +448,8 @@ function! s:glob_files(dir, max) abort
     if skip
       continue
     endif
-    " Relative path with forward slashes
-    let rel = substitute(f, '^' . escape(cwd, '.\\/'), '', '')
-    let rel = substitute(rel, '\\', '/', 'g')
+    " Relative path
+    let rel = fslash[len(cwd):]
     call add(results, rel)
     if len(results) >= a:max
       break
