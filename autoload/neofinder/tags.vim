@@ -73,8 +73,8 @@ function! neofinder#tags#list_groups() abort
     let groups[grp] = get(groups, grp, 0) + 1
   endfor
   let result = []
-  for [name, count] in items(groups)
-    call add(result, name . '  (' . count . ' files)')
+  for [name, cnt] in items(groups)
+    call add(result, name . '  (' . cnt . ' files)')
   endfor
   return sort(result)
 endfunction
