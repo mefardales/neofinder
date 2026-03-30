@@ -181,8 +181,12 @@ function! s:apply_config(data) abort
     if has_key(e, 'incsearch')        | execute 'set ' . (e.incsearch ? '' : 'no') . 'incsearch' | endif
     if has_key(e, 'hlsearch')         | execute 'set ' . (e.hlsearch ? '' : 'no') . 'hlsearch' | endif
     if has_key(e, 'list')             | execute 'set ' . (e.list ? '' : 'no') . 'list' | endif
-    if has_key(e, 'listchars')        | execute 'set listchars=' . e.listchars | endif
-    if has_key(e, 'fillchars')        | execute 'set fillchars=' . e.fillchars | endif
+    if has_key(e, 'listchars')
+      try | execute 'set listchars=' . e.listchars | catch | endtry
+    endif
+    if has_key(e, 'fillchars')
+      try | execute 'set fillchars=' . e.fillchars | catch | endtry
+    endif
   endif
 
   " Search
