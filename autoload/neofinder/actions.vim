@@ -43,7 +43,7 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:action_edit(source, targets) abort
   if a:source ==# 'hosts'
-    call s:action_ssh(a:targets)
+    call s:action_host_info(a:targets)
     return
   endif
 
@@ -73,12 +73,24 @@ function! s:action_edit(source, targets) abort
     return
   endif
 
+  if a:source ==# 'taggroups'
+    let name = neofinder#tags#extract_group_name(a:targets[0])
+    if name !=# ''
+      let items = neofinder#tags#list_by_group(name)
+      call neofinder#core#run_from_palette('tags', items, '')
+    endif
+    return
+  endif
+
   " Default: open files
+  let save_hidden = &hidden
+  set hidden
   for target in a:targets
     if filereadable(target) || isdirectory(target)
       execute 'edit ' . fnameescape(target)
     endif
   endfor
+  let &hidden = save_hidden
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -161,6 +173,41 @@ function! s:action_systemctl(verb, targets) abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" host_info -- Enter on a host: open ssh_config at the Host entry
+" ---------------------------------------------------------------------------
+function! s:action_host_info(targets) abort
+  if empty(a:targets)
+    return
+  endif
+  let host = a:targets[0]
+  let ssh_config = get(g:neofinder, 'ssh_config', expand('~/.ssh/config'))
+
+  " Try to open ssh_config and jump to the Host entry
+  if filereadable(ssh_config)
+    let save_hidden = &hidden
+    set hidden
+    execute 'edit ' . fnameescape(ssh_config)
+    let &hidden = save_hidden
+    " Search for the Host line
+    call cursor(1, 1)
+    let pattern = '^\s*Host\s\+.*\<' . escape(host, '.*[]~\') . '\>'
+    let found = search(pattern, 'cw')
+    if found > 0
+      normal! zz
+    endif
+    echohl NeoFinderPrompt
+    echo '  [' . host . ']  Ctrl-H to SSH connect  |  Editing ssh_config'
+    echohl None
+  else
+    " No ssh_config, try to connect directly
+    echohl NeoFinderPrompt
+    echo '  Connecting to ' . host . '...'
+    echohl None
+    call s:action_ssh(a:targets)
+  endif
+endfunction
+
+" ---------------------------------------------------------------------------
 " ssh
 " ---------------------------------------------------------------------------
 function! s:action_ssh(targets) abort
@@ -168,6 +215,18 @@ function! s:action_ssh(targets) abort
     return
   endif
   let host = a:targets[0]
+
+  if !executable('ssh')
+    echohl ErrorMsg
+    echo '[NeoFinder] ssh not found in PATH. Install OpenSSH to connect.'
+    echohl None
+    return
+  endif
+
+  echohl NeoFinderPrompt
+  echo '  Connecting to ' . host . '...'
+  echohl None
+
   let cmd = 'ssh ' . shellescape(host)
   call s:run_terminal_cmd(cmd)
 endfunction

@@ -91,9 +91,10 @@ function! neofinder#palette(...) abort
         \ ['Scripts         :Nk   ~/bin /usr/local/bin scripts',  'source', 'scripts'],
         \ ['Wordlists       :Nw   seclists dirb dirbuster',     'source', 'wordlists'],
         \ ['Exploits        :Nx   exploitdb metasploit payloads','source', 'exploits'],
-        \ ['Tags            :Nt   bookmarked files',             'source', 'tags'],
+        \ ['Tag Groups      :fg   browse tag groups',             'source', 'taggroups'],
+        \ ['Tags (all)      :fT   all bookmarked files',         'source', 'tags'],
         \ ['Buffers         :Nb   open buffer list',             'source', 'buffers'],
-        \ ['Tab Groups      :Ng   tmux-like tab groups',         'source', 'tabgroups'],
+        \ ['Tab Groups      :fG   tmux-like tab groups',         'source', 'tabgroups'],
         \ ['Terminal        :Nr   open terminal',                'source', 'terminal'],
         \ ]
 
@@ -104,8 +105,8 @@ function! neofinder#palette(...) abort
 
   " -- Actions --
   let actions = [
-        \ ['Tag current file        bookmark this file',          'call', 'neofinder#tags#tag_current()'],
-        \ ['Untag current file      remove bookmark',             'call', 'neofinder#tags#untag_current()'],
+        \ ['Tag current file  :ft   bookmark to a group',          'call', 'neofinder#tags#tag_current()'],
+        \ ['Untag current file :fu  remove from all groups',      'call', 'neofinder#tags#untag_current()'],
         \ ['Settings                config panel (F1)',            'call', 'neofinder#config#open()'],
         \ ['Statusline toggle       on/off global statusline',    'call', 'neofinder#statusline#toggle()'],
         \ ['Help                    all commands & keybindings',  'call', 'neofinder#help()'],
@@ -243,9 +244,12 @@ function! neofinder#help() abort
         \ '  :Nk           scripts         <Leader>fk',
         \ '  :Nw           wordlists       <Leader>fw',
         \ '  :Nx           exploits        <Leader>fx',
-        \ '  :Nt           tags            <Leader>ft',
+        \ '  :Nt           tag file        <Leader>ft',
+        \ '  :Nu           untag file      <Leader>fu',
+        \ '  :NTg          tag groups      <Leader>fg',
+        \ '  :NTa          all tags        <Leader>fT',
         \ '  :Nb           buffers         <Leader>fb',
-        \ '  :Ng           tab groups      <Leader>fg',
+        \ '  :Ng           tab groups      <Leader>fG',
         \ '  :Nr           terminal        <Leader>fR',
         \ '',
         \ '  <Leader>n     open palette',
@@ -260,7 +264,8 @@ function! neofinder#help() abort
         \ '  <C-t>               tail -f  (logs)',
         \ '  <C-r>               systemctl restart',
         \ '  <C-h>               ssh connect (hosts)',
-        \ '  <Tab>               multi-select toggle',
+        \ '  <Tab>               toggle panel/editor',
+        \ '  <C-Space>           multi-select toggle',
         \ '  <C-a>               select all',
         \ '  <C-d>               deselect / delete buf',
         \ '  Left/Right          resize preview',

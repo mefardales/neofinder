@@ -233,6 +233,21 @@ function! neofinder#python#autoload() abort
     return
   endif
   let s:autoloaded = 1
+
+  " Built-in demo command: HelloWorld
+  call neofinder#python#register('HelloWorld', join([
+        \ 'nf.echo("Hello from NeoFinder Python!")',
+        \ 'nf.echo("---")',
+        \ 'nf.echo("File:   " + nf.current_file)',
+        \ 'nf.echo("Dir:    " + nf.current_dir)',
+        \ 'nf.echo("Theme:  " + nf.theme)',
+        \ 'nf.echo("Line:   " + nf.current_line)',
+        \ 'nf.echo("---")',
+        \ 'nf.echo("To create your own commands:")',
+        \ 'nf.echo("  1) Put .py files in ~/.neofinder/python/")',
+        \ 'nf.echo("  2) Or register inline: neofinder#python#register(name, code)")',
+        \ 'nf.echo("  Available: nf.echo() nf.run() nf.open_file() nf.current_file/dir/line/buffer/theme")',
+        \ ], "\n"), 'Demo command - shows NeoFinder Python API basics')
   let dir = expand('~/.neofinder/python')
   if !isdirectory(dir)
     return

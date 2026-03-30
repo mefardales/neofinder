@@ -27,6 +27,9 @@ let s:nav_stack = []
 let s:browse_dir = ''
 let s:browse_history = []
 
+" Tab-toggle state: when 1, input_loop exited to give focus to editor
+let s:toggled_to_editor = 0
+
 " ---------------------------------------------------------------------------
 " Fuzzy match scoring
 " ---------------------------------------------------------------------------
@@ -102,6 +105,27 @@ function! neofinder#core#run(source, items, query) abort
   call s:redraw()
 
   call s:input_loop()
+
+  " Tab-toggle loop: if user toggled to editor, wait for Tab to come back
+  while s:toggled_to_editor
+    let s:toggled_to_editor = 0
+    let finder_winid = bufwinid(s:state.bufnr)
+    let prev_winid = bufwinid(s:state.prevbuf)
+
+    " Move focus to editor
+    if prev_winid > 0
+      call win_gotoid(prev_winid)
+    else
+      wincmd p
+    endif
+
+    " Set Tab mapping in editor to return to finder
+    nnoremap <buffer> <silent> <Tab> :call neofinder#core#resume_from_editor()<CR>
+
+    " Vim returns to normal mode in the editor.
+    " resume_from_editor() handles the return via Tab.
+    return
+  endwhile
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -130,6 +154,9 @@ function! s:create_buffer() abort
   setlocal nowrap nonumber norelativenumber nospell
   setlocal nocursorline nocursorcolumn
   setlocal filetype=neofinder
+
+  " Finder-specific statusline (different from editor statusline)
+  setlocal statusline=%!neofinder#core#finder_statusline()
 
   call neofinder#theme#set_buffer_highlights()
 endfunction
@@ -201,15 +228,16 @@ function! s:redraw() abort
   " Status line -- show navigation hints + browse dir
   let backend = neofinder#backend()
   let nav_hint = !empty(s:nav_stack) ? '  [BS] back' : ''
+  let tab_hint = '  [Tab] editor'
   if s:state.source ==# 'browse'
     let short_dir = substitute(s:browse_dir, '^' . expand('~'), '~', '')
     let nav_hint = '  [BS] up  [Enter] open/enter'
-    let status = printf('  [BROWSE] %s  |  %d items%s',
-          \ short_dir, matched, nav_hint)
+    let status = printf('  [BROWSE] %s  |  %d items%s%s',
+          \ short_dir, matched, nav_hint, tab_hint)
   else
-    let status = printf('  [%s] %d/%d  |  %s  |  multi:%d%s',
+    let status = printf('  [%s] %d/%d  |  %s  |  multi:%d%s%s',
           \ toupper(s:state.source), matched, total, backend,
-          \ len(s:state.selected), nav_hint)
+          \ len(s:state.selected), nav_hint, tab_hint)
   endif
   call setline(2, status)
 
@@ -381,8 +409,14 @@ function! s:input_loop() abort
       continue
     endif
 
-    " Tab → toggle multi-select on current item
+    " Tab → toggle focus to editor (user can press Tab again to return)
     if c == 9
+      let s:toggled_to_editor = 1
+      return
+    endif
+
+    " Ctrl-Space → toggle multi-select on current item
+    if c == 0
       if s:state.cursor < len(s:state.filtered)
         let item = s:state.filtered[s:state.cursor]
         if has_key(s:state.selected, item)
@@ -518,6 +552,73 @@ endfunction
 " ---------------------------------------------------------------------------
 function! neofinder#core#state() abort
   return s:state
+endfunction
+
+" ---------------------------------------------------------------------------
+" Finder statusline (shown only in the finder panel, not the editor)
+" ---------------------------------------------------------------------------
+function! neofinder#core#finder_statusline() abort
+  let src = toupper(s:state.source)
+  let sel = len(s:state.selected)
+
+  let s = ''
+  " Source label
+  let s .= '%#NeoStMode#'
+  let s .= ' NEOFINDER '
+  let s .= '%#NeoStBranch#'
+  let s .= ' ' . src . ' '
+
+  " Selection count
+  if sel > 0
+    let s .= '%#NeoStModified#'
+    let s .= ' ' . sel . ' selected '
+  endif
+
+  " Right side: keybinding hints
+  let s .= '%#NeoStInfo#'
+  let s .= '%='
+  let s .= ' Enter:open '
+  let s .= '%#NeoStPosition#'
+  let s .= ' Tab:editor '
+  let s .= '%#NeoStBranch#'
+  let s .= ' C-v:vsplit  C-x:split '
+  let s .= '%#NeoStClock#'
+  let s .= ' Esc:close '
+
+  return s
+endfunction
+
+" ---------------------------------------------------------------------------
+" Resume finder from editor (called when user presses Tab in editor)
+" ---------------------------------------------------------------------------
+function! neofinder#core#resume_from_editor() abort
+  " Remove the Tab mapping from the editor buffer
+  silent! nunmap <buffer> <Tab>
+
+  " Switch back to finder window
+  let finder_winid = bufwinid(s:state.bufnr)
+  if finder_winid < 0 || !bufexists(s:state.bufnr)
+    " Finder was closed while we were in the editor
+    return
+  endif
+  call win_gotoid(finder_winid)
+
+  " Re-enter the input loop
+  call s:redraw()
+  call s:input_loop()
+
+  " Handle nested toggles (user may Tab away again)
+  while s:toggled_to_editor
+    let s:toggled_to_editor = 0
+    let prev_winid = bufwinid(s:state.prevbuf)
+    if prev_winid > 0
+      call win_gotoid(prev_winid)
+    else
+      wincmd p
+    endif
+    nnoremap <buffer> <silent> <Tab> :call neofinder#core#resume_from_editor()<CR>
+    return
+  endwhile
 endfunction
 
 " ---------------------------------------------------------------------------

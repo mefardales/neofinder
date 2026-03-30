@@ -30,6 +30,8 @@ function! neofinder#sources#gather(source) abort
     return s:gather_exploits()
   elseif a:source ==# 'tags'
     return s:gather_tags()
+  elseif a:source ==# 'taggroups'
+    return s:gather_taggroups()
   elseif a:source ==# 'buffers'
     return s:gather_buffers()
   elseif a:source ==# 'tabgroups'
@@ -343,6 +345,13 @@ endfunction
 " ---------------------------------------------------------------------------
 function! s:gather_tags() abort
   return neofinder#tags#list()
+endfunction
+
+" ---------------------------------------------------------------------------
+" taggroups -- tag group names
+" ---------------------------------------------------------------------------
+function! s:gather_taggroups() abort
+  return neofinder#tags#list_groups()
 endfunction
 
 " ---------------------------------------------------------------------------
