@@ -99,25 +99,23 @@ function! s:action_edit(source, targets) abort
       if name !=# ''
         let path = neofinder#python#create(name)
         if path !=# ''
-          " Open both files for editing
           let json_path = substitute(path, '\.py$', '.json', '')
           execute 'edit ' . fnameescape(json_path)
           execute 'vsplit ' . fnameescape(path)
+          call s:setup_split_tab()
           echohl NeoFinderPrompt
-          echo '  Created: ' . fnamemodify(path, ':t') . ' + .json'
+          echo '  Created: ' . fnamemodify(path, ':t') . ' + .json  [Shift+Tab to switch]'
           echohl None
         endif
       endif
     else
-      " Edit existing: extract path after the last space-space
-      let path = matchstr(line, '\S\+\.py\s*$')
-      " Also try to get the full path from after the tag
       let path = matchstr(line, '\]\s\+\zs\S.*$')
       if path !=# '' && filereadable(path)
         let json_path = substitute(path, '\.py$', '.json', '')
         if filereadable(json_path)
           execute 'edit ' . fnameescape(json_path)
           execute 'vsplit ' . fnameescape(path)
+          call s:setup_split_tab()
         else
           execute 'edit ' . fnameescape(path)
         endif
@@ -282,6 +280,18 @@ endfunction
 " Extract unit name from "sshd.service  [enabled]" format
 function! s:extract_unit(line) abort
   return split(a:line)[0]
+endfunction
+
+" Setup split navigation: Shift+Tab cycle, Shift+Arrow resize
+function! s:setup_split_tab() abort
+  let current = winnr()
+  windo nnoremap <buffer> <silent> <S-Tab>   <C-w>w
+  windo inoremap <buffer> <silent> <S-Tab>   <C-o><C-w>w
+  windo nnoremap <buffer> <silent> <S-Left>  :vertical resize -3<CR>
+  windo nnoremap <buffer> <silent> <S-Right> :vertical resize +3<CR>
+  windo inoremap <buffer> <silent> <S-Left>  <C-o>:vertical resize -3<CR>
+  windo inoremap <buffer> <silent> <S-Right> <C-o>:vertical resize +3<CR>
+  execute current . 'wincmd w'
 endfunction
 
 " Run a command in a terminal buffer (Vim 8+ / Neovim)
