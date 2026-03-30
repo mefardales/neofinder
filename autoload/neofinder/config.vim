@@ -209,8 +209,40 @@ function! s:apply_config(data) abort
   endif
 
   " Keybindings
-  if has_key(a:data, 'keybindings') && has_key(a:data.keybindings, 'enabled')
-    let g:neofinder.no_mappings = !a:data.keybindings.enabled
+  if has_key(a:data, 'keybindings')
+    let kb = a:data.keybindings
+    if has_key(kb, 'enabled')
+      let g:neofinder.no_mappings = !kb.enabled
+    endif
+
+    " Custom bindings: [keybindings.map]
+    if has_key(kb, 'map')
+      for [key, cmd] in items(kb.map)
+        " Expand special key notation
+        let vimkey = s:expand_key(key)
+        try
+          execute 'nnoremap <silent> ' . vimkey . ' ' . cmd
+        catch
+        endtry
+      endfor
+    endif
+
+    " Command bindings: [keybindings.commands]
+    " Single letter = <Leader>nf + letter
+    " Full key notation = used as-is
+    if has_key(kb, 'commands')
+      for [key, name] in items(kb.commands)
+        if len(key) == 1
+          let vimkey = '<Leader>nf' . key
+        else
+          let vimkey = s:expand_key(key)
+        endif
+        try
+          execute 'nnoremap <silent> ' . vimkey . ' :NeoPythonExec ' . name . '<CR>'
+        catch
+        endtry
+      endfor
+    endif
   endif
 
   " Terminal
@@ -234,6 +266,26 @@ function! s:apply_config(data) abort
       autocmd BufWritePre * if getline('$') !=# '' | call append('$', '') | endif
     augroup END
   endif
+endfunction
+
+" Expand key notation: "Ctrl+s" -> "<C-s>", "Leader+w" -> "<Leader>w", etc.
+function! s:expand_key(key) abort
+  let k = a:key
+  " Already Vim notation
+  if k =~# '^<'
+    return k
+  endif
+  " Ctrl+X -> <C-x>
+  let k = substitute(k, 'Ctrl+\(.\)', '<C-\1>', 'g')
+  " Alt+X -> <A-x>
+  let k = substitute(k, 'Alt+\(.\)', '<A-\1>', 'g')
+  " Shift+X -> <S-x>
+  let k = substitute(k, 'Shift+\(.\)', '<S-\1>', 'g')
+  " Leader+x -> <Leader>x
+  let k = substitute(k, 'Leader+', '<Leader>', 'g')
+  " F1-F12
+  let k = substitute(k, 'F\(\d\+\)', '<F\1>', 'g')
+  return k
 endfunction
 
 " ---------------------------------------------------------------------------
@@ -360,5 +412,27 @@ function! s:create_default(path) abort
         \ '# ── Keybindings ───────────────────────────────────────────────────',
         \ '[keybindings]',
         \ 'enabled = true                 # false to disable all <Leader>f mappings',
+        \ '',
+        \ '# Custom key mappings (normal mode)',
+        \ '# Format: key = "vim command"',
+        \ '# Key notation: Ctrl+s, Alt+x, Shift+t, Leader+w, F5, or Vim style <C-s>',
+        \ '[keybindings.map]',
+        \ '# Ctrl+s = ":w<CR>"                   # save file',
+        \ '# Ctrl+q = ":q<CR>"                   # quit',
+        \ '# Leader+w = ":w<CR>"                 # save with leader',
+        \ '# F5 = ":!python3 %<CR>"              # run current python file',
+        \ '# F9 = ":!gcc % -o %:r && ./%:r<CR>"  # compile & run C',
+        \ '',
+        \ '# Bind NeoFinder commands to keys',
+        \ '# Single letter = <Leader>nf + letter (namespace)',
+        \ '# Full key = used as-is (F2, Ctrl+x, etc.)',
+        \ '[keybindings.commands]',
+        \ '# a = "NetInfo"                       # <Leader>nfa  network info',
+        \ '# b = "NetScan"                       # <Leader>nfb  port scan',
+        \ '# c = "NetConns"                      # <Leader>nfc  connections',
+        \ '# d = "GitLog"                        # <Leader>nfd  git log',
+        \ '# e = "GrepHere"                      # <Leader>nfe  grep',
+        \ '# f = "RunHere"                       # <Leader>nff  run shell command',
+        \ '# F2 = "NetInfo"                      # F2 key directly',
         \ ], a:path)
 endfunction
