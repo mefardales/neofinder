@@ -89,6 +89,63 @@ function! s:scan_dir(dir) abort
   endfor
 endfunction
 
+" Public accessor for commands directory
+function! neofinder#python#commands_dir() abort
+  return s:builtin_dir
+endfunction
+
+" Public accessor for user commands directory
+function! neofinder#python#user_dir() abort
+  return expand('~/.neofinder/python')
+endfunction
+
+" Create a new command from template
+function! neofinder#python#create(name) abort
+  let dir = expand('~/.neofinder/python')
+  if !isdirectory(dir)
+    call mkdir(dir, 'p', 0700)
+  endif
+
+  " Convert name to snake_case filename
+  let filename = tolower(substitute(a:name, '\([A-Z]\)', '_\1', 'g'))
+  let filename = substitute(filename, '^_', '', '')
+  let py_path = dir . '/' . filename . '.py'
+  let json_path = dir . '/' . filename . '.json'
+
+  if filereadable(py_path)
+    echohl ErrorMsg | echo 'Already exists: ' . py_path | echohl None
+    return ''
+  endif
+
+  " Write .json template
+  let json_lines = [
+        \ '{',
+        \ '  "name": "' . a:name . '",',
+        \ '  "desc": "TODO: describe this command",',
+        \ '  "deps": ["output"],',
+        \ '  "out": "[' . a:name . ']"',
+        \ '}',
+        \ ]
+  call writefile(json_lines, json_path)
+
+  " Write .py template
+  let py_lines = [
+        \ 'STDOUT.print("' . a:name . '")',
+        \ 'STDOUT.print("=" * 40)',
+        \ 'STDOUT.print("")',
+        \ '',
+        \ '# Your code here',
+        \ '# Available: nf, STDIN, STDOUT, STDERR',
+        \ '# Run HelloDemo to see the full API',
+        \ ]
+  call writefile(py_lines, py_path)
+
+  " Register it
+  call s:register_file(a:name, py_path)
+
+  return py_path
+endfunction
+
 " Debug: show what was loaded (call with :call neofinder#python#debug())
 function! neofinder#python#debug() abort
   echo 'script_dir: ' . s:script_dir

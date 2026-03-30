@@ -371,10 +371,23 @@ function! s:gather_tabgroups() abort
 endfunction
 
 " ---------------------------------------------------------------------------
-" commands -- registered python commands
+" commands -- .py/.json files in commands dir + create new
 " ---------------------------------------------------------------------------
 function! s:gather_commands() abort
-  return neofinder#python#list_detailed()
+  let results = ['[+] New command']
+  let dirs = [neofinder#python#commands_dir(), expand('~/.neofinder/python')]
+  for dir in dirs
+    if !isdirectory(dir)
+      continue
+    endif
+    for f in glob(dir . '/*.py', 0, 1)
+      let name = fnamemodify(f, ':t')
+      let json = substitute(f, '\.py$', '.json', '')
+      let tag = filereadable(json) ? ' [ok]' : ' [no handler]'
+      call add(results, name . tag . '  ' . f)
+    endfor
+  endfor
+  return results
 endfunction
 
 " ---------------------------------------------------------------------------
