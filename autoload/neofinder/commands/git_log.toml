@@ -6,3 +6,7 @@ name = "GitLog"
 desc = "Recent git log -> output buffer"
 deps = ["output", "shell"]
 out = "[Git Log]"
+filetype = "git"
+
+[validate]
+commands = ["git"]

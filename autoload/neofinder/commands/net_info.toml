@@ -6,3 +6,12 @@ name = "NetInfo"
 desc = "Network interfaces, IPs, routes, DNS"
 deps = ["output", "shell"]
 out = "[Network Info]"
+platform = "linux,darwin"
+
+[header]
+show = true
+separator = "="
+width = 50
+
+[env]
+timestamp = "datetime.now().strftime('%Y-%m-%d %H:%M')"

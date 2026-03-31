@@ -40,6 +40,28 @@ function! s:register_file(name, path) abort
   let s:registry[a:name] = {'file': a:path, 'desc': desc}
 endfunction
 
+" Register a .toml-only command (shell-only, no .py needed)
+function! s:register_toml_only(name, toml_path) abort
+  if !filereadable(a:toml_path)
+    return
+  endif
+  let desc = ''
+  for line in readfile(a:toml_path, '', 10)
+    let m = matchstr(line, '^desc\s*=\s*"\zs[^"]*')
+    if m !=# ''
+      let desc = m
+      break
+    endif
+  endfor
+  if desc ==# ''
+    let desc = a:name
+  endif
+  " Point file to the .py path (even if it doesn't exist — runtime handles it)
+  let py_path = substitute(a:toml_path, '\.toml$', '.py', '')
+  let s:registry[a:name] = {'file': py_path, 'desc': desc}
+endfunction
+
+
 " Read description from .toml handler or '# desc:' from .py
 function! s:read_desc(path) abort
   " Try .toml handler first
@@ -79,10 +101,21 @@ function! s:scan_dir(dir) abort
   if !isdirectory(a:dir)
     return
   endif
+  " Register .py commands (with or without .toml)
   for f in glob(a:dir . '/*.py', 0, 1)
     let name = s:file_to_name(f)
     if !has_key(s:registry, name)
       call s:register_file(name, f)
+    endif
+  endfor
+  " Register .toml-only commands (shell-only, no .py needed)
+  for f in glob(a:dir . '/*.toml', 0, 1)
+    let py = substitute(f, '\.toml$', '.py', '')
+    if !filereadable(py)
+      let name = s:file_to_name(substitute(f, '\.toml$', '.py', ''))
+      if !has_key(s:registry, name)
+        call s:register_toml_only(name, f)
+      endif
     endif
   endfor
 endfunction
@@ -125,7 +158,6 @@ function! neofinder#python#create(name) abort
         \ 'desc = "TODO: describe this command"',
         \ '',
         \ '# ── Dependencies ──────────────────────────────────────────',
-        \ '# What this command uses from the runtime:',
         \ '#   "input"  = asks user for variables (see [in])',
         \ '#   "output" = writes to output buffer (STDOUT)',
         \ '#   "shell"  = runs shell commands (nf.sh)',
@@ -133,20 +165,52 @@ function! neofinder#python#create(name) abort
         \ '#   "tags"   = accesses tag groups (nf.tags)',
         \ 'deps = ["output"]',
         \ '',
+        \ '# ── Output ────────────────────────────────────────────────',
+        \ 'out = "[' . a:name . ']"',
+        \ '# filetype = "log"            # syntax highlight output buffer',
+        \ '# silent = false               # true = no output buffer',
+        \ '# timeout = 30                 # kill after N seconds',
+        \ '# platform = "linux,darwin"    # restrict to OS',
+        \ '# shortcut = "x"              # <Leader>nf + x',
+        \ '',
         \ '# ── Input Variables ────────────────────────────────────────',
-        \ '# Each key becomes a variable injected into your .py',
-        \ '# The value is the prompt shown to the user',
+        \ '# Simple:   host = "Host/IP: "',
+        \ '# Default:  port = { prompt = "Port: ", default = "80" }',
+        \ '# Options:  mode = { prompt = "Mode: ", options = ["fast", "full"] }',
+        \ '# Confirm:  ok = { prompt = "Continue?", type = "confirm" }',
+        \ '# File:     path = { prompt = "File: ", type = "file" }',
         \ '[in]',
         \ '# host = "Host/IP: "',
-        \ '# port = "Port (8080): "',
-        \ '',
-        \ '# ── Output ────────────────────────────────────────────────',
-        \ '# Title for the output buffer. Use ${var} to interpolate.',
-        \ 'out = "[' . a:name . ']"',
         \ '',
         \ '# ── Pipe ──────────────────────────────────────────────────',
-        \ '# Load current buffer content into STDIN before execution',
-        \ '# pipe = "buffer"    # STDIN.text / STDIN.lines',
+        \ '# pipe = "buffer"  # loads buffer into STDIN.text / STDIN.lines',
+        \ '',
+        \ '# ── Environment (auto-injected, no prompt) ─────────────────',
+        \ '# [env]',
+        \ '# timestamp = "datetime.now().strftime(''%Y-%m-%d %H:%M'')"',
+        \ '# cwd = "nf.dir"',
+        \ '',
+        \ '# ── Pre-flight Validation ──────────────────────────────────',
+        \ '# [validate]',
+        \ '# commands = ["git", "curl"]   # require binaries in PATH',
+        \ '# filetype = ["python"]        # restrict to filetypes',
+        \ '# min_lines = 1                # buffer must have content',
+        \ '',
+        \ '# ── Auto Header (printed before script runs) ───────────────',
+        \ '# [header]',
+        \ '# show = true',
+        \ '# separator = "="',
+        \ '# width = 50',
+        \ '# info = ["host"]              # show input vars in header',
+        \ '',
+        \ '# ── Shell-Only Mode (no .py needed) ────────────────────────',
+        \ '# [shell]',
+        \ '# cmd = "df -h"                # or "ping -c 3 ${host}"',
+        \ '',
+        \ '# ── Error Messages ─────────────────────────────────────────',
+        \ '# [error]',
+        \ '# empty = "No results found"   # when STDOUT is empty',
+        \ '# fail = "Command failed"      # on non-zero exit',
         \ ]
   call writefile(toml_lines, toml_path)
 

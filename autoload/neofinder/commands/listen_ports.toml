@@ -1,0 +1,26 @@
+# ══════════════════════════════════════════════════════════
+# ListenPorts -- listening ports via pipeline (no .py needed)
+#
+# Pipeline chain:  lsof >> grep >> format >> sort
+# Each step feeds its STDOUT as STDIN to the next step.
+# Like Airflow DAGs: step_a >> step_b >> step_c
+# ══════════════════════════════════════════════════════════
+
+name = "ListenPorts"
+desc = "Listening ports (pipeline demo)"
+deps = ["output", "shell"]
+out = "[Listening Ports]"
+platform = "linux,darwin"
+
+[validate]
+commands = ["lsof"]
+
+[pipeline]
+chain = "scan >> filter >> format >> sort"
+on_fail = "stop"
+
+[pipeline.steps]
+scan   = { type = "shell", cmd = "lsof -iTCP -sTCP:LISTEN -nP 2>/dev/null" }
+filter = { type = "shell", cmd = "tail -n +2" }
+format = { type = "shell", cmd = "awk '{printf \"  %-12s %-8s %s\\n\", $1, $2, $9}'" }
+sort   = { type = "shell", cmd = "sort -t: -k2 -n" }

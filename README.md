@@ -19,7 +19,7 @@ Pure Vimscript core + Python commands. Works on Linux, macOS, Windows.
 - **Command system** -- every command is a `.py` file + `.toml` handler. STDIN/STDOUT/STDERR standard I/O
 - **Tag groups** -- bookmark files into named groups, browse by group
 - **TOML configuration** -- `~/.neofinder/config.toml` with comments, auto-reload on save
-- **Global themes** -- Matrix, Dark, Cyberpunk affect the entire editor + statusline
+- **Global theme** -- Matrix affects the entire editor + statusline
 - **Powerline statusline** -- mode, git branch, buffer count, filetype, clock
 - **Window management** -- split, resize, navigate with keyboard shortcuts
 - **Buffer navigation** -- switch buffers without leaving the editor
@@ -158,18 +158,15 @@ Themes affect the **entire editor** -- Normal, StatusLine, syntax groups, etc.
 | Theme | Description |
 |---|---|
 | `matrix` | Green on black (default) |
-| `dark` | Subtle gray/white on dark |
-| `cyberpunk` | Magenta/cyan neon |
-| `default` | Vim's native colors |
 
-Switch themes by editing `config.toml` (`<Leader>fc`).
+Custom themes can be added at `~/.neofinder/themes/<name>.vim`. Switch themes by editing `config.toml` (`<Leader>fc`).
 
 ## Configuration
 
 All settings live in `~/.neofinder/config.toml`. Open with `<Leader>fc`. Changes apply instantly on save (`:w`).
 
 ```toml
-# Theme: "matrix", "dark", "cyberpunk", "default"
+# Built-in: "matrix" (custom themes: ~/.neofinder/themes/<name>.vim)
 [theme]
 name = "matrix"
 
@@ -363,7 +360,7 @@ neofinder/
 ├── autoload/neofinder.vim            # Palette, browse, backend detection
 ├── autoload/neofinder/
 │   ├── core.vim                      # Finder UI, input loop, fuzzy/glob filter
-│   ├── theme.vim                     # Global themes (editor + finder + statusline)
+│   ├── theme.vim                     # Matrix theme (editor + finder + statusline)
 │   ├── preview.vim                   # File preview pane
 │   ├── config.vim                    # TOML config loader + auto-reload
 │   ├── statusline.vim                # Powerline statusline

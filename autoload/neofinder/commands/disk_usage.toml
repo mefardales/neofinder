@@ -1,11 +1,17 @@
 # ══════════════════════════════════════════════════════════
-# SortBuffer -- sort current buffer lines
+# DiskUsage -- show disk usage (shell-only, no .py needed)
 # ══════════════════════════════════════════════════════════
 
-name = "SortBuffer"
-desc = "Sort all lines in current buffer"
-deps = ["buffer"]
-pipe = "buffer"
+name = "DiskUsage"
+desc = "Disk usage summary"
+deps = ["output", "shell"]
+out = "[Disk Usage]"
+platform = "linux,darwin"
 
-[validate]
-min_lines = 1
+[shell]
+cmd = "df -h"
+
+[header]
+show = true
+separator = "="
+width = 50

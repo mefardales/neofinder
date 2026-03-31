@@ -4,81 +4,167 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NeoFinder Reference</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><polygon points='12,2 22,20 2,20' fill='%23fabd2f' stroke='%23282828' stroke-width='1.5'/></svg>">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; color: #333; background: #fff; line-height: 1.6; }
+    :root {
+      /* Light theme */
+      --bg: #fefefe;
+      --bg-alt: #f5f5f0;
+      --bg-code: #f0efe8;
+      --fg: #3c3836;
+      --fg-dim: #7c6f64;
+      --fg-heading: #282828;
+      --border: #d5c4a1;
+      --border-light: #ebdbb2;
+      --accent: #b57614;
+      --accent2: #427b58;
+      --link: #076678;
+      --tag: #9d0006;
+      --sidebar-bg: #f9f5d7;
+      --sidebar-hover: #ebdbb2;
+      --card-bg: #f9f5d7;
+      --note-bg: #ebdbb2;
+      --note-border: #b57614;
+      --help-header: #9d0006;
+      --help-tag: #076678;
+      --help-section: #b57614;
+      --help-key: #427b58;
+      --help-special: #8f3f71;
+    }
 
-    /* Layout: sidebar + content */
+    [data-theme="dark"] {
+      --bg: #1d2021;
+      --bg-alt: #282828;
+      --bg-code: #32302f;
+      --fg: #ebdbb2;
+      --fg-dim: #a89984;
+      --fg-heading: #fbf1c7;
+      --border: #504945;
+      --border-light: #3c3836;
+      --accent: #fabd2f;
+      --accent2: #b8bb26;
+      --link: #83a598;
+      --tag: #fb4934;
+      --sidebar-bg: #282828;
+      --sidebar-hover: #3c3836;
+      --card-bg: #32302f;
+      --note-bg: #3c3836;
+      --note-border: #fabd2f;
+      --help-header: #fb4934;
+      --help-tag: #83a598;
+      --help-section: #fabd2f;
+      --help-key: #b8bb26;
+      --help-special: #d3869b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace; color: var(--fg); background: var(--bg); line-height: 1.6; font-size: 14px; transition: background 0.2s, color 0.2s; }
+
+
     .layout { display: flex; min-height: 100vh; }
 
     /* Sidebar */
     .sidebar {
-      width: 240px; min-width: 240px; background: #f7f7f7; border-right: 1px solid #e0e0e0;
-      padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      width: 240px; min-width: 240px; background: var(--sidebar-bg); border-right: 1px solid var(--border);
+      padding: 20px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; transition: background 0.2s;
     }
-    .sidebar .logo { font-weight: 700; font-size: 1.2em; padding: 0 20px 15px; border-bottom: 1px solid #e0e0e0; margin-bottom: 10px; color: #111; }
-    .sidebar a { display: block; padding: 5px 20px; color: #555; text-decoration: none; font-size: 0.88em; }
-    .sidebar a:hover { background: #eee; color: #111; }
-    .sidebar .section-label { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; color: #999; padding: 12px 20px 4px; font-weight: 600; }
+    .sidebar .logo { font-weight: 700; font-size: 1.1em; padding: 0 20px 15px; border-bottom: 1px solid var(--border); margin-bottom: 10px; color: var(--accent); }
+    .sidebar a { display: block; padding: 4px 20px; color: var(--fg-dim); text-decoration: none; font-size: 0.88em; }
+    .sidebar a:hover { background: var(--sidebar-hover); color: var(--fg-heading); }
+    .sidebar .section-label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; color: var(--fg-dim); padding: 12px 20px 4px; font-weight: 600; }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed; top: 12px; right: 16px; z-index: 100;
+      background: var(--bg-alt); border: 1px solid var(--border); border-radius: 50%;
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--fg-dim); transition: all 0.2s; padding: 0;
+    }
+    .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+    .theme-toggle svg { display: block; }
 
     /* Content */
     .content { flex: 1; padding: 30px 40px; max-width: 840px; }
 
-    h1 { font-size: 1.8em; margin-bottom: 6px; color: #111; }
-    .subtitle { color: #666; margin-bottom: 30px; }
-    h2 { font-size: 1.35em; color: #111; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-top: 45px; margin-bottom: 15px; }
-    h3 { font-size: 1.05em; color: #444; margin-top: 22px; margin-bottom: 8px; }
+    h1 { font-size: 1.6em; margin-bottom: 4px; color: var(--accent); font-weight: 700; }
+    .subtitle { color: var(--fg-dim); margin-bottom: 30px; font-style: italic; }
+    h2 { font-size: 1.2em; color: var(--fg-heading); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-top: 45px; margin-bottom: 15px; }
+    h2::before { content: "## "; color: var(--fg-dim); }
+    h3 { font-size: 1em; color: var(--accent2); margin-top: 22px; margin-bottom: 8px; }
 
     p { margin-bottom: 10px; }
     ul, ol { margin: 8px 0 12px 20px; }
     li { margin: 3px 0; }
 
-    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.88em; font-family: "SF Mono", "Fira Code", Consolas, monospace; }
-    pre { background: #f8f8f8; border: 1px solid #e8e8e8; padding: 14px 16px; border-radius: 5px; overflow-x: auto; font-size: 0.84em; line-height: 1.55; margin: 10px 0 16px; }
-    pre code { background: none; padding: 0; }
+    code { background: var(--bg-code); padding: 1px 5px; border-radius: 2px; font-size: 0.92em; font-family: inherit; color: var(--accent); }
+    pre { background: var(--bg-code); border: 1px solid var(--border-light); padding: 12px 14px; border-radius: 2px; overflow-x: auto; font-size: 0.88em; line-height: 1.55; margin: 10px 0 16px; }
+    pre code { background: none; padding: 0; color: var(--fg); }
 
-    /* Tables */
     table { width: 100%; border-collapse: collapse; margin: 10px 0 18px; font-size: 0.9em; }
-    th { text-align: left; padding: 8px 10px; background: #f7f7f7; border-bottom: 2px solid #ddd; font-weight: 600; color: #333; }
-    td { padding: 6px 10px; border-bottom: 1px solid #eee; }
-    td:first-child { font-family: "SF Mono", Consolas, monospace; font-size: 0.88em; white-space: nowrap; color: #111; }
+    th { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); font-weight: 600; color: var(--fg-dim); }
+    td { padding: 5px 10px; border-bottom: 1px solid var(--border-light); }
+    td:first-child { white-space: nowrap; color: var(--accent2); }
 
-    /* Two-column grids */
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
-    .card { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 6px; padding: 16px; }
-    .card h4 { margin: 0 0 6px; font-size: 0.95em; color: #111; }
-    .card p { font-size: 0.88em; color: #666; margin: 0; }
+    .card { background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 3px; padding: 14px; }
+    .card h4 { margin: 0 0 4px; font-size: 0.92em; color: var(--accent); }
+    .card p { font-size: 0.88em; color: var(--fg-dim); margin: 0; }
 
-    /* Side-by-side code */
     .code-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
     .code-pair pre { margin: 0; }
-    .code-label { font-size: 0.78em; font-weight: 600; color: #888; margin-bottom: 4px; }
+    .code-label { font-size: 0.78em; font-weight: 600; color: var(--fg-dim); margin-bottom: 4px; }
 
-    /* Note callout */
-    .note { background: #f0f7ff; border-left: 3px solid #3b82f6; padding: 10px 14px; margin: 12px 0; border-radius: 3px; font-size: 0.9em; }
+    .note { background: var(--note-bg); border-left: 3px solid var(--note-border); padding: 10px 14px; margin: 12px 0; border-radius: 2px; font-size: 0.9em; }
 
-    /* Install tabs */
     .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
-    .install-card { background: #f8f8f8; border: 1px solid #e8e8e8; border-radius: 5px; padding: 12px 14px; }
-    .install-card .label { font-size: 0.78em; font-weight: 600; color: #888; margin-bottom: 6px; }
-    .install-card code { display: block; background: #fff; border: 1px solid #eee; padding: 8px 10px; border-radius: 3px; font-size: 0.82em; word-break: break-all; }
+    .install-card { background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 3px; padding: 12px 14px; position: relative; }
+    .install-card .label { font-size: 0.78em; font-weight: 600; color: var(--fg-dim); margin-bottom: 6px; }
+    .install-card .code-wrap { position: relative; }
+    .install-card code { display: block; background: var(--bg-code); border: 1px solid var(--border-light); padding: 8px 32px 8px 10px; border-radius: 2px; font-size: 0.82em; word-break: break-all; color: var(--fg); }
+    .copy-btn {
+      position: absolute; top: 6px; right: 6px; background: none; border: none;
+      cursor: pointer; color: var(--fg-dim); padding: 2px; border-radius: 2px; transition: color 0.2s;
+    }
+    .copy-btn:hover { color: var(--accent); }
+    .copy-btn svg { display: block; }
 
-    a { color: #2563eb; text-decoration: none; }
+    a { color: var(--link); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    hr { border: none; border-top: 1px solid #eee; margin: 30px 0; }
-    .footer { text-align: center; color: #aaa; font-size: 0.82em; padding: 30px 0; border-top: 1px solid #eee; margin-top: 40px; }
+    hr { border: none; border-top: 1px solid var(--border-light); margin: 30px 0; }
+    .footer { text-align: center; color: var(--fg-dim); font-size: 0.82em; padding: 30px 0; border-top: 1px solid var(--border-light); margin-top: 40px; }
 
-    /* Responsive */
+    /* ── Vim/Emacs-style help ── */
+    .help-doc { background: var(--bg-alt); border: 1px solid var(--border); padding: 0; margin: 16px 0; border-radius: 2px; overflow: hidden; }
+    .help-doc .help-modeline {
+      background: var(--border-light); padding: 3px 12px; font-size: 0.78em; color: var(--fg-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .help-doc pre {
+      background: transparent; border: none; margin: 0; padding: 12px 14px; font-size: 0.86em; line-height: 1.65;
+    }
+    .help-doc pre code { color: var(--fg); }
+    .help-doc .hl-header { color: var(--help-header); font-weight: bold; }
+    .help-doc .hl-tag { color: var(--help-tag); }
+    .help-doc .hl-section { color: var(--help-section); font-weight: bold; }
+    .help-doc .hl-key { color: var(--help-key); }
+    .help-doc .hl-special { color: var(--help-special); }
+    .help-doc .hl-dim { color: var(--fg-dim); }
+
     @media (max-width: 768px) {
       .layout { flex-direction: column; }
-      .sidebar { width: 100%; min-width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #e0e0e0; padding: 15px 0; }
+      .sidebar { width: 100%; min-width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); padding: 15px 0; }
       .content { padding: 20px 16px; }
       .grid-2, .code-pair, .install-grid { grid-template-columns: 1fr; }
+      .theme-toggle { top: auto; bottom: 12px; right: 12px; }
     }
   </style>
 </head>
 <body>
 
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn" aria-label="Toggle theme">
+  <svg id="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  <svg id="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+</button>
 <div class="layout">
 
 <!-- ==================== SIDEBAR ==================== -->
@@ -101,13 +187,20 @@
   <a href="#themes">Themes</a>
   <div class="section-label">Reference</div>
   <a href="#structure">Project Structure</a>
+  <a href="#help">Help</a>
   <a href="https://github.com/mefardales/neofinder">GitHub</a>
 </nav>
 
 <!-- ==================== CONTENT ==================== -->
 <main class="content">
 
-<h1>NeoFinder</h1>
+<pre class="ascii-logo" style="background:transparent;border:none;padding:0;margin:0 0 6px;line-height:1.2;color:var(--accent);font-size:0.78em;"><code style="color:var(--accent);">
+    _   __           _______           __
+   / | / /__  ____  / ____(_)___  ____/ /__  _____
+  /  |/ / _ \/ __ \/ /_  / / __ \/ __  / _ \/ ___/
+ / /|  /  __/ /_/ / __/ / / / / / /_/ /  __/ /
+/_/ |_/\___/\____/_/   /_/_/ /_/\__,_/\___/_/
+</code></pre>
 <p class="subtitle">File browser, command runner and editor toolkit for Vim/Neovim.</p>
 
 <!-- ── INSTALL ── -->
@@ -116,19 +209,31 @@
 <div class="install-grid">
   <div class="install-card">
     <div class="label">vim-plug</div>
-    <code>Plug 'mefardales/neofinder'</code>
+    <div class="code-wrap">
+      <code>Plug 'mefardales/neofinder'</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
   <div class="install-card">
     <div class="label">One-liner</div>
-    <code>curl -fsSL https://raw.githubusercontent.com/mefardales/neofinder/main/install.sh | bash</code>
+    <div class="code-wrap">
+      <code>curl -fsSL https://raw.githubusercontent.com/mefardales/neofinder/main/install.sh | bash</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
   <div class="install-card">
     <div class="label">Vim 8+ native</div>
-    <code>git clone https://github.com/mefardales/neofinder.git ~/.vim/pack/plugins/start/neofinder</code>
+    <div class="code-wrap">
+      <code>git clone https://github.com/mefardales/neofinder.git ~/.vim/pack/plugins/start/neofinder</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
   <div class="install-card">
     <div class="label">Neovim</div>
-    <code>git clone https://github.com/mefardales/neofinder.git ~/.local/share/nvim/site/pack/plugins/start/neofinder</code>
+    <div class="code-wrap">
+      <code>git clone https://github.com/mefardales/neofinder.git ~/.local/share/nvim/site/pack/plugins/start/neofinder</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
 </div>
 
@@ -284,24 +389,36 @@ dotfiles:/home/user/.bashrc</code></pre>
 <!-- ── COMMAND SYSTEM ── -->
 <h2 id="commands">Command System</h2>
 
-<p>Every command is a <code>.toml</code> handler + <code>.py</code> logic. Create with palette &rarr; <code>Commands :fe</code> &rarr; <code>[+] New command</code>.</p>
+<p>Every command is a <code>.toml</code> handler + <code>.py</code> logic. The TOML declares the contract (inputs, validation, output), the .py focuses on logic. Shell-only commands need no .py at all.</p>
 
 <div class="code-pair">
   <div>
-    <div class="code-label">net_scan.toml</div>
-    <pre><code># NetScan -- port scan a host
-
-name = "NetScan"
-desc = "Port scan a host"
+    <div class="code-label">net_scan.toml (full handler)</div>
+    <pre><code>name = "NetScan"
+desc = "Ping sweep or port check"
 deps = ["input", "output", "shell"]
 out = "[Scan ${host}]"
+filetype = "log"
 
 [in]
-host = "Host/IP: "</code></pre>
+host = "Host/IP: "
+
+[validate]
+commands = ["ping"]
+
+[header]
+show = true
+separator = "="
+width = 50
+info = ["host"]
+
+[error]
+empty = "Host unreachable"</code></pre>
   </div>
   <div>
-    <div class="code-label">net_scan.py</div>
-    <pre><code>STDOUT.print("Scanning %s..." % host)
+    <div class="code-label">net_scan.py (pure logic)</div>
+    <pre><code># host is auto-injected from [in]
+# header is auto-printed from [header]
 
 stdout, stderr, rc = nf.sh(
     "ping -c 3 %s" % host
@@ -310,6 +427,14 @@ STDOUT.write(stdout.splitlines())
 
 if rc != 0:
     STDERR.print("Host unreachable")</code></pre>
+    <div class="code-label" style="margin-top:12px">disk_usage.toml (shell-only, no .py)</div>
+    <pre><code>name = "DiskUsage"
+desc = "Disk usage summary"
+deps = ["output", "shell"]
+out = "[Disk Usage]"
+
+[shell]
+cmd = "df -h"</code></pre>
   </div>
 </div>
 
@@ -320,9 +445,92 @@ if rc != 0:
   <tr><td>desc</td><td>string</td><td>Description in palette</td></tr>
   <tr><td>deps</td><td>array</td><td><code>input</code>, <code>output</code>, <code>shell</code>, <code>buffer</code>, <code>tags</code></td></tr>
   <tr><td>out</td><td>string</td><td>Output buffer title. Supports <code>${var}</code></td></tr>
+  <tr><td>filetype</td><td>string</td><td>Syntax highlight for output buffer (<code>log</code>, <code>git</code>, etc.)</td></tr>
+  <tr><td>timeout</td><td>int</td><td>Kill after N seconds</td></tr>
+  <tr><td>platform</td><td>string</td><td>Restrict to OS: <code>"linux,darwin"</code></td></tr>
+  <tr><td>silent</td><td>bool</td><td>If true, don't open output buffer</td></tr>
   <tr><td>pipe</td><td>string</td><td><code>"buffer"</code> loads current buffer into STDIN</td></tr>
-  <tr><td>[in]</td><td>section</td><td>Variables to ask user. <code>key = "prompt"</code></td></tr>
 </table>
+
+<h3>Input [in]</h3>
+<table>
+  <tr><th>Format</th><th>Example</th><th>Description</th></tr>
+  <tr><td>Simple</td><td><code>host = "Host: "</code></td><td>String prompt</td></tr>
+  <tr><td>Default</td><td><code>port = { prompt = "Port: ", default = "80" }</code></td><td>Pre-filled value</td></tr>
+  <tr><td>Options</td><td><code>mode = { prompt = "Mode: ", options = ["fast", "full"] }</code></td><td>Select from list</td></tr>
+  <tr><td>Confirm</td><td><code>ok = { prompt = "Continue?", type = "confirm" }</code></td><td>Yes/no dialog</td></tr>
+  <tr><td>File</td><td><code>path = { prompt = "File: ", type = "file" }</code></td><td>Path with tab completion</td></tr>
+</table>
+
+<h3>Sections</h3>
+<div class="grid-2">
+  <div class="card">
+    <h4>[validate]</h4>
+    <p><code>commands = ["git"]</code> require binaries<br>
+    <code>filetype = ["python"]</code> restrict filetypes<br>
+    <code>min_lines = 1</code> buffer must have content</p>
+  </div>
+  <div class="card">
+    <h4>[env]</h4>
+    <p>Auto-injected variables (no prompt):<br>
+    <code>timestamp = "datetime.now()..."</code><br>
+    <code>cwd = "nf.dir"</code></p>
+  </div>
+  <div class="card">
+    <h4>[header]</h4>
+    <p><code>show = true</code> auto-print header<br>
+    <code>separator = "="</code> <code>width = 50</code><br>
+    <code>info = ["host"]</code> show input vars</p>
+  </div>
+  <div class="card">
+    <h4>[shell]</h4>
+    <p>Run shell cmd without .py:<br>
+    <code>cmd = "df -h"</code><br>
+    Supports <code>${var}</code> interpolation</p>
+  </div>
+  <div class="card">
+    <h4>[error]</h4>
+    <p><code>empty = "No results"</code> when STDOUT empty<br>
+    <code>fail = "Failed"</code> on non-zero exit</p>
+  </div>
+  <div class="card">
+    <h4>[in] + [env] + [shell]</h4>
+    <p>Combine them for powerful shell-only commands that ask input, validate, and run without any Python.</p>
+  </div>
+</div>
+
+<h3>Pipeline</h3>
+<p>Chain steps like Airflow DAGs: <code>a &gt;&gt; b &gt;&gt; c &gt;&gt; d</code>. Each step's STDOUT flows as STDIN to the next.</p>
+
+<div class="code-pair">
+  <div>
+    <div class="code-label">Named steps (a >> b >> c)</div>
+    <pre><code>[pipeline]
+chain = "scan >> filter >> sort"
+on_fail = "stop"
+
+[pipeline.steps]
+scan   = { type = "shell", cmd = "lsof -i -nP" }
+filter = { type = "shell", cmd = "grep LISTEN" }
+sort   = { type = "shell", cmd = "sort -k2" }</code></pre>
+  </div>
+  <div>
+    <div class="code-label">Step options</div>
+    <pre><code># Step types:
+#   shell   = run shell command
+#   command = run NeoFinder command
+#   python  = eval python code
+
+# on_fail per step or global:
+#   stop     = abort pipeline
+#   continue = keep going
+#   skip     = skip, pass prev output</code></pre>
+  </div>
+</div>
+
+<div class="note">
+  Pipeline output shows execution status per step with pass/fail indicators and a summary with final output.
+</div>
 
 <h3>Standard I/O</h3>
 <div class="grid-2">
@@ -475,12 +683,9 @@ b = "NetScan"</code></pre>
 
 <div class="grid-2">
   <div class="card"><h4>matrix</h4><p>Green on black (default)</p></div>
-  <div class="card"><h4>dark</h4><p>Gray/white on dark</p></div>
-  <div class="card"><h4>cyberpunk</h4><p>Magenta/cyan neon</p></div>
-  <div class="card"><h4>default</h4><p>Vim native colors</p></div>
 </div>
 
-<p>Change in config: <code>name = "dark"</code> under <code>[theme]</code> and save.</p>
+<p>Set in config: <code>name = "matrix"</code> under <code>[theme]</code>.</p>
 
 <!-- ── STRUCTURE ── -->
 <h2 id="structure">Project Structure</h2>
@@ -513,8 +718,137 @@ b = "NetScan"</code></pre>
   MIT License
 </div>
 
+<!-- ── HELP (vim/emacs oldschool style) ── -->
+<h2 id="help">Help</h2>
+
+<div class="help-doc">
+  <div class="help-modeline">neofinder.txt&emsp;For Vim/Neovim&emsp;Last change: 2025 Jun 01</div>
+  <pre><code><span class="hl-header">*neofinder.txt*</span>    File browser, command runner and editor toolkit
+
+<span class="hl-dim">Author:  mefardales</span>
+<span class="hl-dim">License: MIT</span>
+<span class="hl-dim">Repo:    https://github.com/mefardales/neofinder</span>
+
+<span class="hl-section">CONTENTS</span>                                            <span class="hl-tag">*neofinder-contents*</span>
+
+    1. Overview .............. |<span class="hl-tag">neofinder-overview</span>|
+    2. Quick start ........... |<span class="hl-tag">neofinder-quickstart</span>|
+    3. Mappings .............. |<span class="hl-tag">neofinder-mappings</span>|
+    4. Commands .............. |<span class="hl-tag">neofinder-commands</span>|
+    5. Configuration ......... |<span class="hl-tag">neofinder-config</span>|
+
+<span class="hl-section">1. OVERVIEW</span>                                          <span class="hl-tag">*neofinder-overview*</span>
+
+NeoFinder is a file browser with fuzzy/glob search, a tag
+system, a command runner with Python scripting, and split/buffer
+management.  Everything is accessed through a single palette.
+
+<span class="hl-section">2. QUICK START</span>                                       <span class="hl-tag">*neofinder-quickstart*</span>
+
+Install with your plugin manager and run:
+&gt;
+    :Neo
+&lt;
+This opens the palette.  From there:
+
+    <span class="hl-key">:ff</span>   file browser      <span class="hl-key">:fv</span>   favorites
+    <span class="hl-key">:fb</span>   buffers           <span class="hl-key">:fg</span>   tag groups
+    <span class="hl-key">:fr</span>   run command       <span class="hl-key">:fe</span>   edit commands
+    <span class="hl-key">:fc</span>   config            <span class="hl-key">:fR</span>   terminal
+
+<span class="hl-section">3. MAPPINGS</span>                                          <span class="hl-tag">*neofinder-mappings*</span>
+
+    <span class="hl-key">&lt;Leader&gt;fp</span>    Open palette
+    <span class="hl-key">&lt;Leader&gt;ff</span>    File browser
+    <span class="hl-key">&lt;Leader&gt;fv</span>    Favorites
+    <span class="hl-key">&lt;Leader&gt;fb</span>    Buffers
+    <span class="hl-key">&lt;Leader&gt;fg</span>    Tag groups
+    <span class="hl-key">&lt;Leader&gt;ft</span>    Tag current file
+    <span class="hl-key">&lt;Leader&gt;fu</span>    Untag current file
+
+    Inside finder:
+
+    <span class="hl-key">&lt;CR&gt;</span>          Open file / enter directory
+    <span class="hl-key">&lt;BS&gt;</span>          Go up / back
+    <span class="hl-key">&lt;C-v&gt;</span>         Open in vertical split
+    <span class="hl-key">&lt;C-x&gt;</span>         Open in horizontal split
+    <span class="hl-key">&lt;C-t&gt;</span>         Tag file
+    <span class="hl-key">&lt;C-d&gt;</span>         Untag / delete
+    <span class="hl-key">&lt;Tab&gt;</span>         Toggle finder / editor
+    <span class="hl-key">&lt;Esc&gt;</span>         Close finder
+
+<span class="hl-section">4. COMMANDS</span>                                          <span class="hl-tag">*neofinder-commands*</span>
+
+Commands are <span class="hl-special">.toml</span> + <span class="hl-special">.py</span> pairs in <span class="hl-special">~/.neofinder/commands/</span>.
+
+    <span class="hl-key">:NeoRun</span> {name}     Run a command by name
+    <span class="hl-key">:NeoEdit</span> {name}    Edit a command
+    <span class="hl-key">:NeoNew</span>            Create new command
+
+The Python runtime exposes <span class="hl-special">nf.*</span> for shell, buffers, I/O:
+&gt;
+    out, err, rc = nf.sh("ls -la")
+    nf.buf.append(out.splitlines())
+    nf.echo("Done")
+&lt;
+
+<span class="hl-section">5. CONFIGURATION</span>                                     <span class="hl-tag">*neofinder-config*</span>
+
+All settings live in <span class="hl-special">~/.neofinder/config.toml</span>.
+Open with <span class="hl-key">&lt;Leader&gt;fc</span> and save to apply.
+&gt;
+    [theme]
+    name = "matrix"      <span class="hl-dim">" only theme: matrix</span>
+
+    [finder]
+    height = 15
+    preview = true
+
+    [editor]
+    tabstop = 4
+    expandtab = true
+&lt;
+
+<span class="hl-dim">vim:tw=78:ts=8:ft=help:norl:</span></code></pre>
+</div>
+
 </main>
 </div>
+
+<script>
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(function() {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(function() {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    }, 1500);
+  });
+}
+function updateIcons() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('icon-moon').style.display = isDark ? 'block' : 'none';
+  document.getElementById('icon-sun').style.display = isDark ? 'none' : 'block';
+}
+function toggleTheme() {
+  const html = document.documentElement;
+  if (html.getAttribute('data-theme') === 'dark') {
+    html.removeAttribute('data-theme');
+    localStorage.setItem('nf-theme', 'light');
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    localStorage.setItem('nf-theme', 'dark');
+  }
+  updateIcons();
+}
+(function() {
+  const saved = localStorage.getItem('nf-theme');
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  document.addEventListener('DOMContentLoaded', updateIcons);
+})();
+</script>
 
 </body>
 </html>

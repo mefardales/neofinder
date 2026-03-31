@@ -6,6 +6,11 @@ name = "GrepHere"
 desc = "Grep pattern in cwd -> output buffer"
 deps = ["input", "output", "shell"]
 out = "[grep ${pattern}]"
+filetype = "log"
+timeout = 30
 
 [in]
 pattern = "grep: "
+
+[error]
+empty = "No matches found"

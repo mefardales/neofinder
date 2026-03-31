@@ -1,11 +1,12 @@
 # ══════════════════════════════════════════════════════════
-# SortBuffer -- sort current buffer lines
+# WhoIsOn -- logged in users (shell-only)
 # ══════════════════════════════════════════════════════════
 
-name = "SortBuffer"
-desc = "Sort all lines in current buffer"
-deps = ["buffer"]
-pipe = "buffer"
+name = "WhoIsOn"
+desc = "Who is logged in"
+deps = ["output", "shell"]
+out = "[Users]"
+platform = "linux,darwin"
 
-[validate]
-min_lines = 1
+[shell]
+cmd = "w"

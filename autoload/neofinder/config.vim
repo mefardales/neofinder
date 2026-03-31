@@ -312,7 +312,7 @@ function! s:create_default(path) abort
         \ '',
         \ '',
         \ '# ── Theme ─────────────────────────────────────────────────────────',
-        \ '# Options: "matrix", "dark", "cyberpunk", "default"',
+        \ '# Built-in: "matrix"  (custom themes: ~/.neofinder/themes/<name>.vim)',
         \ '[theme]',
         \ 'name = "matrix"',
         \ 'ascii_statusline = false       # true for terminals without powerline fonts',

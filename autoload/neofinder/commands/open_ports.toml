@@ -1,0 +1,30 @@
+# ══════════════════════════════════════════════════════════
+# OpenPorts -- local open ports with process info
+# ══════════════════════════════════════════════════════════
+
+name = "OpenPorts"
+desc = "Open ports with process, PID, and user info"
+deps = ["input", "output", "shell"]
+out = "[Open Ports]"
+platform = "linux,darwin"
+timeout = 30
+
+[in]
+filter = { prompt = "Filter (all/tcp/udp/listening): ", options = ["all", "tcp", "udp", "listening"], default = "all" }
+
+[validate]
+commands = ["lsof"]
+
+[header]
+show = true
+separator = "═"
+width = 90
+info = ["filter"]
+
+[env]
+hostname = "platform.node()"
+timestamp = "datetime.now().strftime('%Y-%m-%d %H:%M:%S')"
+is_mac = "platform.system() == 'Darwin'"
+
+[error]
+empty = "No open ports found (may need sudo for full results)"
