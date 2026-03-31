@@ -1,0 +1,225 @@
+*neofinder.txt*  file browser, command runner & editor toolkit
+
+                    _   _            _____ _           _~
+                   | \ | | ___  ___ |  ___(_)_ __   __| | ___ _ __~
+                   |  \| |/ _ \/ _ \| |_  | | '_ \ / _` |/ _ \ '__|~
+                   | |\  |  __/ (_) |  _| | | | | | (_| |  __/ |~
+                   |_| \_|\___|\___/|_|   |_|_| |_|\__,_|\___|_|~
+
+
+
+Author:  NeoFinder contributors
+License: MIT
+Version: 1.0.0
+
+==============================================================================
+CONTENTS                                            *neofinder-contents*
+
+    1. Introduction .............. |neofinder-intro|
+    2. Installation .............. |neofinder-install|
+    3. Commands .................. |neofinder-commands|
+    4. Key Bindings .............. |neofinder-keys|
+    5. Configuration ............. |neofinder-config|
+    6. Themes .................... |neofinder-themes|
+    7. Sources ................... |neofinder-sources|
+    8. Buffer & Tab Manager ...... |neofinder-buffers|
+    9. Tagging ................... |neofinder-tags|
+   10. Backends .................. |neofinder-backends|
+
+==============================================================================
+1. INTRODUCTION                                     *neofinder-intro*
+
+NeoFinder is a file browser, command runner and editor toolkit for Vim.  It replaces and extends ctrlp.vim with specialized sources for
+config files, logs, systemd services, SSH hosts, Ansible playbooks, and
+a persistent tagging/bookmarking system.
+
+Zero external dependencies are required.  NeoFinder detects and uses
+ripgrep or fd when available, falling back to `find`.
+
+==============================================================================
+2. INSTALLATION                                     *neofinder-install*
+
+vim-plug: >
+    Plug 'YOUR_USERNAME/neofinder'
+<
+Vim 8 native packages: >
+    git clone https://github.com/YOUR_USERNAME/neofinder \
+        ~/.vim/pack/plugins/start/neofinder
+<
+One-liner: >
+    curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/neofinder/main/install.sh | bash
+<
+
+==============================================================================
+3. COMMANDS                                         *neofinder-commands*
+
+*:Neo*    Command palette -- fuzzy search all actions, themes,
+          sources, settings.  The single entry point.
+
+Short commands for fast access (each unique, no tab conflicts):
+
+*:Nf*     Files -- fuzzy file finder from cwd
+*:Nc*     Configs -- /etc, ~/.config, nginx, systemd, etc.
+*:Nl*     Logs -- browse /var/log files
+*:Ns*     Services -- systemd unit files with actions
+*:Nj*     Journal -- fuzzy search journalctl output
+*:Nh*     Hosts -- SSH hosts from ~/.ssh/config → direct connect
+*:Na*     Ansible -- playbooks, inventories, roles
+*:Nt*     Tags -- bookmarked files
+*:Nb*     Buffers -- fuzzy buffer list (switch, split, delete)
+*:Ng*     Tab Groups -- tmux-like named tab groups
+*:Nr*     Terminal -- open terminal in bottom split
+
+Tag/untag, settings, themes, tab group management, Python
+commands, and all other actions are available from the :Neo
+command palette.
+
+==============================================================================
+4. KEY BINDINGS                                     *neofinder-keys*
+
+Default leader mappings (disable with g:neofinder.no_mappings): >
+
+    <Leader>n     :Neo   (command palette)
+    <Leader>ff    :Nf    files
+    <Leader>fc    :Nc    configs
+    <Leader>fl    :Nl    logs
+    <Leader>fs    :Ns    services
+    <Leader>fj    :Nj    journal
+    <Leader>fh    :Nh    hosts
+    <Leader>fa    :Na    ansible
+    <Leader>ft    :Nt    tags
+    <Leader>fb    :Nb    buffers
+    <Leader>fg    :Ng    tab groups
+    <Leader>fR    :Nr    terminal
+<
+Inside the finder window:
+
+    <CR>          Open file / execute default action
+    <C-v>         Open in vertical split
+    <C-x>         Open in horizontal split
+    <C-s>         Open with sudoedit
+    <C-t>         Tail -f (for logs)
+    <C-r>         systemctl restart (for services)
+    <C-h>         SSH connect (for hosts)
+    <Tab>         Toggle multi-select on current item
+    <C-a>         Select all visible items
+    <C-d>         Deselect all
+    <C-j>/<C-n>   Move cursor down
+    <C-k>/<C-p>   Move cursor up
+    <C-d>         Delete buffer (buffers source) / deselect all
+    <Left>        Shrink preview pane (-8 cols)
+    <Right>       Grow preview pane (+8 cols)
+    <F1>          Open settings panel
+    <Esc>/<C-c>   Close finder
+
+==============================================================================
+5. CONFIGURATION                                    *neofinder-config*
+
+Set options via the |g:neofinder| dictionary: >
+
+    let g:neofinder = {
+        \ 'theme':        'matrix',
+        \ 'preview':      1,
+        \ 'preview_width': 60,
+        \ 'height':       15,
+        \ 'max_files':    50000,
+        \ 'no_mappings':  0,
+        \ 'ignore':       ['/proc', '/sys', '/dev', '.git'],
+        \ 'tag_file':     '~/.neofinder/tags',
+        \ 'config_paths': ['/etc', '~/.config'],
+        \ 'log_paths':    ['/var/log'],
+        \ 'ssh_config':   '~/.ssh/config',
+        \ 'known_hosts':  '~/.ssh/known_hosts',
+        \ }
+<
+
+==============================================================================
+6. THEMES                                           *neofinder-themes*
+
+NeoFinder supports multiple themes.  Built-in themes:
+
+    matrix      Green on black (cyberpunk, the default)
+    dark        Gray/white on dark, with colored syntax
+    cyberpunk   Magenta/cyan neon on dark
+    default     Uses Vim's native colors
+
+Switch themes with |:NeoConfig| or set in your vimrc: >
+    let g:neofinder = { 'theme': 'cyberpunk' }
+<
+                                                    *neofinder-custom-themes*
+Create custom themes:
+
+1. Use |:NeoConfig| and select "Create custom theme from current..."
+2. Edit the generated file in ~/.neofinder/themes/<name>.vim
+3. Each theme is a Vimscript dictionary with keys like Normal, Prompt,
+   Cursor, Keyword, String, Comment, etc.
+
+Example custom theme file: >
+    let g:neofinder_custom_theme = {
+        \ 'Normal':  {'ctermfg': 250, 'ctermbg': 234,
+        \             'guifg': '#BCBCBC', 'guibg': '#1C1C1C'},
+        \ 'Cursor':  {'ctermfg': 0,  'ctermbg': 214,
+        \             'guifg': '#000000', 'guibg': '#FFAF00',
+        \             'cterm': 'bold', 'gui': 'bold'},
+        \ }
+<
+
+==============================================================================
+7. SOURCES                                          *neofinder-sources*
+
+files       All files under cwd (respects ignore list)
+configs     System and user config files
+logs        Log files under /var/log
+services    systemd unit files
+journal     journalctl output (last 500 lines)
+hosts       SSH hosts from config + known_hosts
+ansible     Ansible YAML, INI, Jinja2 files
+tags        User-bookmarked files
+
+==============================================================================
+8. BUFFER & TAB MANAGER                             *neofinder-buffers*
+
+NeoFinder includes a tmux-like buffer and tab group manager.
+
+                                                    *neofinder-buffer-list*
+|:NeoBuffers| opens a fuzzy list of all open buffers.  Use arrow keys or
+<C-j>/<C-k> to navigate, <CR> to switch, <C-v> to vsplit, <C-x> to split,
+and <C-d> to close/delete the buffer under the cursor.
+
+                                                    *neofinder-tab-groups*
+Tab groups are named collections of tabs, similar to tmux sessions: >
+
+    :NeoGroupCreate work       " create group 'work', add current tab
+    :NeoGroupAdd work          " add current tab to 'work'
+    :NeoGroupRemove work       " remove current tab from 'work'
+    :NeoTabGroups              " fuzzy-list groups, <CR> to switch
+<
+Groups are persisted in ~/.neofinder/tabgroups.json.
+
+                                                    *neofinder-terminal*
+|:NeoTerminal| opens a terminal in a bottom split.
+|:NeoRun| opens a terminal and executes a command: >
+
+    :NeoRun htop
+    :NeoRun docker ps
+<
+
+==============================================================================
+9. TAGGING                                          *neofinder-tags*
+
+Tags are stored in ~/.neofinder/tags (one path per line).
+Use |:NeoTag| and |:NeoUntag| to manage, |:NeoTags| to browse.
+
+==============================================================================
+10. BACKENDS                                        *neofinder-backends*
+
+NeoFinder auto-detects the fastest available file-listing backend:
+
+    1. ripgrep (rg)  -- fastest, respects .gitignore
+    2. fd             -- fast, respects .gitignore
+    3. find           -- universal fallback
+
+Run |:NeoHelp| to see which backend is active.
+
+==============================================================================
+ vim:tw=78:ts=8:ft=help:norl:

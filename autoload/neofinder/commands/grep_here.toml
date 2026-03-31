@@ -1,0 +1,11 @@
+# ══════════════════════════════════════════════════════════
+# GrepHere -- search files in cwd
+# ══════════════════════════════════════════════════════════
+
+name = "GrepHere"
+desc = "Grep pattern in cwd -> output buffer"
+deps = ["input", "output", "shell"]
+out = "[grep ${pattern}]"
+
+[in]
+pattern = "grep: "

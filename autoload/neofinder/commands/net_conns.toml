@@ -1,0 +1,8 @@
+# ══════════════════════════════════════════════════════════
+# NetConns -- active network connections
+# ══════════════════════════════════════════════════════════
+
+name = "NetConns"
+desc = "Active network connections"
+deps = ["output", "shell"]
+out = "[Connections]"

@@ -1,0 +1,8 @@
+# ══════════════════════════════════════════════════════════
+# TaggedFiles -- browse tagged files by group
+# ══════════════════════════════════════════════════════════
+
+name = "TaggedFiles"
+desc = "Show all tags grouped -> output buffer"
+deps = ["tags", "output", "echo"]
+out = "[Tags]"

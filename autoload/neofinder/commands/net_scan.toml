@@ -1,0 +1,11 @@
+# ══════════════════════════════════════════════════════════
+# NetScan -- ping, DNS, port scan a host
+# ══════════════════════════════════════════════════════════
+
+name = "NetScan"
+desc = "Ping sweep or port check on a host"
+deps = ["input", "output", "shell"]
+out = "[Scan ${host}]"
+
+[in]
+host = "Host/IP: "
