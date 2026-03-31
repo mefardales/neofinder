@@ -205,7 +205,8 @@ function! s:apply_customizations(theme) abort
 
       " Transparent background
       if transparent && has_key(attrs, 'guibg')
-        if grp ==# 'Normal' || grp ==# 'NonText' || grp ==# 'EndOfBuffer' || grp ==# 'SignColumn'
+        if grp ==# 'Normal' || grp ==# 'NonText' || grp ==# 'EndOfBuffer'
+              \ || grp ==# 'SignColumn' || grp ==# 'LineNr' || grp ==# 'VertSplit'
           let attrs.guibg = 'NONE'
           let attrs.ctermbg = 'NONE'
         endif

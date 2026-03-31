@@ -53,12 +53,13 @@ function! s:gather_files() abort
   let max = get(g:neofinder, 'max_files', 50000)
   let be = neofinder#backend()
   let ignore = neofinder#ignore_flags()
+  let hidden = get(g:neofinder, 'show_hidden', 1) ? '--hidden ' : ''
 
   if be ==# 'rg'
-    let cmd = 'rg --files --hidden ' . ignore . ' 2>/dev/null | head -n ' . max
+    let cmd = 'rg --files ' . hidden . ignore . ' 2>/dev/null | head -n ' . max
     return s:run_cmd(cmd)
   elseif be ==# 'fd'
-    let cmd = 'fd --type f --hidden ' . ignore . ' 2>/dev/null | head -n ' . max
+    let cmd = 'fd --type f ' . hidden . ignore . ' 2>/dev/null | head -n ' . max
     return s:run_cmd(cmd)
   else
     " Pure Vim fallback (works on Windows without rg/fd)
@@ -242,10 +243,15 @@ function! s:gather_browse(dir) abort
   endif
 
   let ignores = get(g:neofinder, 'ignore', [])
+  let show_hidden = get(g:neofinder, 'show_hidden', 1)
   let results = []
 
   " Directories first
-  for d in glob(dir . '*/', 0, 1) + glob(dir . '.*/', 0, 1)
+  let dir_globs = glob(dir . '*/', 0, 1)
+  if show_hidden
+    let dir_globs += glob(dir . '.*/', 0, 1)
+  endif
+  for d in dir_globs
     let name = fnamemodify(d, ':h:t')
     if name ==# '.' || name ==# '..' | continue | endif
     let skip = 0
@@ -258,15 +264,26 @@ function! s:gather_browse(dir) abort
   endfor
   call sort(results)
 
-  " Then files
+  " Then files (sorted according to sort_by setting)
   let file_list = []
-  for f in glob(dir . '*', 0, 1) + glob(dir . '.*', 0, 1)
+  let file_globs = glob(dir . '*', 0, 1)
+  if show_hidden
+    let file_globs += glob(dir . '.*', 0, 1)
+  endif
+  for f in file_globs
     if isdirectory(f) | continue | endif
     let name = fnamemodify(f, ':t')
     if name ==# '.' || name ==# '..' | continue | endif
     call add(file_list, name)
   endfor
-  call sort(file_list)
+  let sort_by = get(g:neofinder, 'sort_by', 'name')
+  if sort_by ==# 'modified'
+    call sort(file_list, {a, b -> getftime(dir . b) - getftime(dir . a)})
+  elseif sort_by ==# 'size'
+    call sort(file_list, {a, b -> getfsize(dir . b) - getfsize(dir . a)})
+  else
+    call sort(file_list)
+  endif
   let results += file_list
 
   " Cache it

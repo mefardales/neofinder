@@ -226,7 +226,18 @@ function! s:apply_config(data) abort
   if has_key(a:data, 'keybindings')
     let kb = a:data.keybindings
     if has_key(kb, 'enabled')
+      let prev = get(g:neofinder, 'no_mappings', 0)
       let g:neofinder.no_mappings = !kb.enabled
+      " Remove default mappings on reload if user disables keybindings
+      if !prev && g:neofinder.no_mappings
+        for k in ['<Leader>fp', '<Leader>ff', '<Leader>fv', '<Leader>fg',
+              \   '<Leader>ft', '<Leader>fu', '<Leader>fR', '<Leader>fr',
+              \   '<Leader>fe', '<Leader>fc', '<Leader>fb',
+              \   '<Leader>bn', '<Leader>bp',
+              \   '<Leader>sv', '<Leader>sh', '<Leader>sc']
+          silent! execute 'nunmap ' . k
+        endfor
+      endif
     endif
 
     " Custom bindings: [keybindings.map]

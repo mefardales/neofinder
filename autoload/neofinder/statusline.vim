@@ -10,18 +10,22 @@
 " ---------------------------------------------------------------------------
 " Separators (Powerline-style if terminal supports it, else ASCII)
 " ---------------------------------------------------------------------------
-let s:sep_left  = get(g:, 'neofinder_sep_left',  "\ue0b0")   "
-let s:sep_right = get(g:, 'neofinder_sep_right', "\ue0b2")   "
-let s:sub_left  = get(g:, 'neofinder_sub_left',  "\ue0b1")   "
-let s:sub_right = get(g:, 'neofinder_sub_right', "\ue0b3")   "
+function! neofinder#statusline#update_separators() abort
+  if get(g:neofinder, 'ascii_statusline', 0)
+    let s:sep_left  = ''
+    let s:sep_right = ''
+    let s:sub_left  = '|'
+    let s:sub_right = '|'
+  else
+    let s:sep_left  = get(g:, 'neofinder_sep_left',  "\ue0b0")
+    let s:sep_right = get(g:, 'neofinder_sep_right', "\ue0b2")
+    let s:sub_left  = get(g:, 'neofinder_sub_left',  "\ue0b1")
+    let s:sub_right = get(g:, 'neofinder_sub_right', "\ue0b3")
+  endif
+endfunction
 
-" Fallback: if user sets ascii separators
-if get(g:neofinder, 'ascii_statusline', 0)
-  let s:sep_left  = ''
-  let s:sep_right = ''
-  let s:sub_left  = '|'
-  let s:sub_right = '|'
-endif
+" Initialize on first load
+call neofinder#statusline#update_separators()
 
 " ---------------------------------------------------------------------------
 " Git branch detection (cached per buffer change)
@@ -90,7 +94,7 @@ function! neofinder#statusline#build() abort
   let s .= '%#NeoStBranch#'
 
   " Branch segment
-  if branch !=# ''
+  if branch !=# '' && get(g:neofinder, 'sl_branch', 1)
     let s .= ' ' . s:sub_left . ' ' . branch . ' '
   endif
 
@@ -124,8 +128,10 @@ function! neofinder#statusline#build() abort
   let s .= ' %P '
 
   " Clock segment
-  let s .= '%#NeoStClock#'
-  let s .= ' %{strftime("%H:%M")} '
+  if get(g:neofinder, 'sl_clock', 1)
+    let s .= '%#NeoStClock#'
+    let s .= ' %{strftime("%H:%M")} '
+  endif
 
   return s
 endfunction
@@ -137,6 +143,7 @@ function! neofinder#statusline#enable() abort
   if get(g:neofinder, 'statusline', 1) == 0
     return
   endif
+  call neofinder#statusline#update_separators()
   set laststatus=2             " always show statusline
   set cmdheight=1              " command line = 1 row, no wasted space
   set noshowmode               " mode already in statusline
