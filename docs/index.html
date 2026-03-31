@@ -498,6 +498,39 @@ cmd = "df -h"</code></pre>
   </div>
 </div>
 
+<h3>Pipeline</h3>
+<p>Chain steps like Airflow DAGs: <code>a &gt;&gt; b &gt;&gt; c &gt;&gt; d</code>. Each step's STDOUT flows as STDIN to the next.</p>
+
+<div class="code-pair">
+  <div>
+    <div class="code-label">Named steps (a >> b >> c)</div>
+    <pre><code>[pipeline]
+chain = "scan >> filter >> sort"
+on_fail = "stop"
+
+[pipeline.steps]
+scan   = { type = "shell", cmd = "lsof -i -nP" }
+filter = { type = "shell", cmd = "grep LISTEN" }
+sort   = { type = "shell", cmd = "sort -k2" }</code></pre>
+  </div>
+  <div>
+    <div class="code-label">Step options</div>
+    <pre><code># Step types:
+#   shell   = run shell command
+#   command = run NeoFinder command
+#   python  = eval python code
+
+# on_fail per step or global:
+#   stop     = abort pipeline
+#   continue = keep going
+#   skip     = skip, pass prev output</code></pre>
+  </div>
+</div>
+
+<div class="note">
+  Pipeline output shows execution status per step with pass/fail indicators and a summary with final output.
+</div>
+
 <h3>Standard I/O</h3>
 <div class="grid-2">
   <div class="card">

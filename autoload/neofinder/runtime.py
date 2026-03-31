@@ -328,6 +328,34 @@ class _NeoFinder:
         bufs = _vim.eval('getbufinfo({"buflisted": 1})')
         return [b['name'] for b in bufs if b['name']]
 
+    # -- Pipe: chain commands ────────────────────────────────
+    # Usage in .py:
+    #   nf.pipe("GrepHere")           pipe STDOUT to another command
+    #   nf.pipe("SortBuffer")         chain as many as you want
+    #   nf.pipe_shell("sort | uniq")  pipe STDOUT through shell cmd
+
+    _pipe_data = ''  # shared pipe buffer between commands
+
+    def pipe(self, command_name):
+        """
+        Pipe current STDOUT to another NeoFinder command.
+        The receiving command gets STDOUT content as STDIN.
+        """
+        # Store current STDOUT as pipe data
+        _NeoFinder._pipe_data = STDOUT.text if 'STDOUT' in dir() else ''
+        # Execute the target command
+        _vim.command('NeoPythonExec %s' % command_name)
+
+    def pipe_shell(self, cmd):
+        """
+        Pipe current STDOUT through a shell command.
+        Returns the filtered output and replaces STDOUT.
+        """
+        input_text = STDOUT.text if 'STDOUT' in dir() else ''
+        r = _subprocess.run(cmd, shell=True, capture_output=True,
+                            text=True, input=input_text)
+        return r.stdout
+
     # -- Echo --
 
     _echo_count = 0
@@ -585,6 +613,185 @@ def _interpolate(text, scope):
     return text
 
 
+# =========================================================================
+#  Pipeline engine -- chain steps like Airflow: a >> b >> c >> d
+# =========================================================================
+class _PipelineStep:
+    """Represents a single step in a pipeline."""
+
+    def __init__(self, name, step_type, value, on_fail='stop'):
+        self.name = name
+        self.type = step_type      # 'shell', 'command', 'python'
+        self.value = value         # the cmd/command-name/code
+        self.on_fail = on_fail     # 'stop', 'skip', 'continue'
+        self.output = ''
+        self.rc = 0
+        self.error = ''
+        self.status = 'pending'    # pending, running, success, failed, skipped
+
+
+def _run_pipeline(handler, scope, stdout, stderr):
+    """
+    Execute a pipeline defined in [pipeline] section.
+
+    TOML format:
+        [pipeline]
+        chain = "a >> b >> c"
+
+        [pipeline.steps]
+        a = { type = "shell", cmd = "lsof -i -nP" }
+        b = { type = "shell", cmd = "grep LISTEN" }
+        c = { type = "shell", cmd = "sort -t: -k2 -n" }
+
+    Or simple shell-only chain:
+        [pipeline]
+        chain = "lsof -i -nP | grep LISTEN | sort"
+
+    Each step receives previous step's STDOUT as STDIN.
+    """
+    pipeline = handler.get('pipeline', {})
+    if not pipeline:
+        return False  # no pipeline, use normal execution
+
+    chain_str = pipeline.get('chain', '')
+    steps_def = pipeline.get('steps', {})
+    on_fail_default = pipeline.get('on_fail', 'stop')
+
+    if not chain_str:
+        return False
+
+    # ── Parse chain ──────────────────────────────────────
+    # Support two formats:
+    #   1. Named steps: "a >> b >> c"
+    #   2. Shell pipe:  "cmd1 | cmd2 | cmd3"
+
+    if '>>' in chain_str:
+        # Named steps mode
+        step_names = [s.strip() for s in chain_str.split('>>')]
+        steps = []
+        for sname in step_names:
+            if sname in steps_def:
+                sdef = steps_def[sname]
+                if isinstance(sdef, dict):
+                    stype = sdef.get('type', 'shell')
+                    cmd = sdef.get('cmd', sdef.get('command', sdef.get('code', '')))
+                    fail = sdef.get('on_fail', on_fail_default)
+                else:
+                    stype = 'shell'
+                    cmd = str(sdef)
+                    fail = on_fail_default
+                steps.append(_PipelineStep(sname, stype, cmd, fail))
+            else:
+                # Assume it's a NeoFinder command name
+                steps.append(_PipelineStep(sname, 'command', sname, on_fail_default))
+    else:
+        # Simple shell pipe: "cmd1 | cmd2 | cmd3"
+        parts = [p.strip() for p in chain_str.split('|')]
+        steps = [_PipelineStep('step_%d' % i, 'shell', cmd, on_fail_default)
+                 for i, cmd in enumerate(parts)]
+
+    if not steps:
+        return False
+
+    # ── Print pipeline header ────────────────────────────
+    total = len(steps)
+    stdout.print("  PIPELINE  %s" % chain_str)
+    stdout.print("  " + "═" * 70)
+    stdout.print("")
+
+    # ── Execute chain ────────────────────────────────────
+    pipe_data = ''  # flowing data between steps
+
+    # If STDIN has data (from pipe="buffer" or previous command), use it
+    if scope.get('STDIN') and scope['STDIN'].text:
+        pipe_data = scope['STDIN'].text
+
+    for i, step in enumerate(steps):
+        step.status = 'running'
+        step_label = "[%d/%d] %s" % (i + 1, total, step.name)
+
+        # Interpolate variables in command
+        cmd = _interpolate(step.value, scope)
+
+        try:
+            if step.type == 'shell':
+                r = _subprocess.run(
+                    cmd, shell=True, capture_output=True, text=True,
+                    input=pipe_data if pipe_data else None
+                )
+                step.output = r.stdout
+                step.error = r.stderr
+                step.rc = r.returncode
+
+            elif step.type == 'command':
+                # Run a NeoFinder command -- store output, pass pipe
+                nf._pipe_data = pipe_data
+                _vim.command('NeoPythonExec %s' % cmd)
+                step.output = nf._pipe_data or ''
+                step.rc = 0
+
+            elif step.type == 'python':
+                # Inline python expression
+                local_scope = dict(scope)
+                local_scope['PIPE'] = pipe_data
+                local_scope['PIPE_LINES'] = pipe_data.splitlines() if pipe_data else []
+                exec(cmd, local_scope)
+                step.output = local_scope.get('RESULT', pipe_data)
+                if isinstance(step.output, list):
+                    step.output = '\n'.join(str(l) for l in step.output)
+                step.rc = 0
+
+        except Exception as e:
+            step.error = str(e)
+            step.rc = 1
+
+        # ── Evaluate result ──────────────────────────────
+        if step.rc == 0 or step.output:
+            step.status = 'success'
+            pipe_data = step.output  # pass to next step
+            stdout.print("  %s  ✓  %s" % (step_label, _truncate(cmd, 50)))
+        else:
+            step.status = 'failed'
+            stdout.print("  %s  ✗  %s" % (step_label, _truncate(cmd, 50)))
+            if step.error:
+                stdout.print("       error: %s" % step.error.strip()[:80])
+
+            if step.on_fail == 'stop':
+                stdout.print("")
+                stdout.print("  ⚠ Pipeline stopped at step %d" % (i + 1))
+                stderr.print("Pipeline failed at: %s" % step.name)
+                break
+            elif step.on_fail == 'skip':
+                step.status = 'skipped'
+                # Don't update pipe_data, next step gets previous output
+                continue
+
+    # ── Final output ─────────────────────────────────────
+    stdout.print("")
+    stdout.print("  " + "─" * 70)
+
+    # Summary
+    success = sum(1 for s in steps if s.status == 'success')
+    failed = sum(1 for s in steps if s.status == 'failed')
+    skipped = sum(1 for s in steps if s.status == 'skipped')
+    stdout.print("  Done: %d/%d ok  %d failed  %d skipped" % (success, total, failed, skipped))
+    stdout.print("  " + "─" * 70)
+    stdout.print("")
+
+    # Print final pipe output
+    if pipe_data:
+        stdout.print("  OUTPUT:")
+        stdout.print("  " + "─" * 70)
+        for line in pipe_data.strip().splitlines():
+            stdout.print("  %s" % line)
+
+    return True  # pipeline was executed
+
+
+def _truncate(s, maxlen):
+    return s if len(s) <= maxlen else s[:maxlen - 3] + '...'
+
+
 def _run_command(py_path):
     """
     Main entry point called by python.vim.
@@ -663,14 +870,20 @@ def _run_command(py_path):
     # ── 5) Evaluate [env] -> auto-injected variables ─────────
     scope = {'nf': nf, 'STDIN': stdin, 'STDOUT': stdout, 'STDERR': stderr}
     env = handler.get('env', {})
-    for var_name, expr in env.items():
-        try:
-            import platform, datetime
-            eval_scope = {'nf': nf, 'platform': platform, 'datetime': datetime,
-                          'os': _os, 'subprocess': _subprocess}
-            scope[var_name] = eval(str(expr), eval_scope)
-        except Exception as e:
-            scope[var_name] = str(expr)
+    if env:
+        import platform as _platform
+        import datetime as _datetime
+        env_scope = {
+            'nf': nf, 'platform': _platform,
+            'datetime': _datetime.datetime, 'date': _datetime.date,
+            'timedelta': _datetime.timedelta,
+            'os': _os, 'subprocess': _subprocess,
+        }
+        for var_name, expr in env.items():
+            try:
+                scope[var_name] = eval(str(expr), env_scope)
+            except Exception as e:
+                scope[var_name] = str(expr)
 
     # ── 6) Process [in] -> ask user, populate STDIN + scope ──
     inputs = handler.get('in', {})
@@ -716,9 +929,14 @@ def _run_command(py_path):
         stdin.set(var_name, value)
         scope[var_name] = value
 
-    # ── 7) Process "pipe" -> load buffer into STDIN ──────────
-    if handler.get('pipe') == 'buffer':
+    # ── 7) Process "pipe" -> load buffer or piped data into STDIN
+    pipe_val = handler.get('pipe', '')
+    if pipe_val == 'buffer':
         stdin.read_buffer()
+    elif nf._pipe_data:
+        # Receiving piped data from a previous command
+        stdin._pipe = nf._pipe_data
+        nf._pipe_data = ''  # consume it
 
     # ── 8) Interpolate ${var} in output title ────────────────
     if out_title:
@@ -744,8 +962,22 @@ def _run_command(py_path):
             stdout.print(sep * width)
         stdout.print('')
 
-    # ── 10) Execute: shell-only or .py ───────────────────────
+    # ── 10) Execute: pipeline, shell-only, or .py ──────────
     nf._echo_count = 0
+
+    # Check for pipeline first
+    if handler.get('pipeline', {}):
+        if _run_pipeline(handler, scope, stdout, stderr):
+            # Pipeline handled everything
+            out_filetype = handler.get('filetype', '')
+            silent = handler.get('silent', False)
+            if not silent:
+                stdout.flush()
+                if out_filetype and stdout.lines:
+                    _vim.command('setlocal filetype=%s' % out_filetype)
+            stderr.show()
+            return
+
     timeout = int(handler.get('timeout', 0))
     shell_section = handler.get('shell', {})
     shell_cmd = shell_section.get('cmd', '') if isinstance(shell_section, dict) else ''
@@ -816,6 +1048,23 @@ def _run_command(py_path):
     # ── 14) Show STDERR ──────────────────────────────────────
     stderr.show()
 
-    # ── 15) Pause for echo-only commands ─────────────────────
+    # ── 15) Pipe to next command if pipe_to defined ──────────
+    pipe_to = handler.get('pipe_to', '')
+    pipe_shell = handler.get('pipe_shell', '')
+    if stdout.lines and pipe_to:
+        # Chain: send STDOUT to another NeoFinder command as STDIN
+        nf._pipe_data = stdout.text
+        _vim.command('NeoPythonExec %s' % pipe_to)
+    elif stdout.lines and pipe_shell:
+        # Filter: pipe STDOUT through a shell command
+        shell_cmd = _interpolate(pipe_shell, scope)
+        r = _subprocess.run(shell_cmd, shell=True, capture_output=True,
+                            text=True, input=stdout.text)
+        if r.stdout:
+            stdout.clear()
+            stdout.write(r.stdout.splitlines())
+            stdout.flush()
+
+    # ── 16) Pause for echo-only commands ─────────────────────
     if nf._echo_count > 0 and not stdout.lines:
         _vim.eval('input(" ")')
