@@ -116,8 +116,14 @@ function! s:apply_config(data) abort
   " Theme
   if has_key(a:data, 'theme')
     let t = a:data.theme
-    if has_key(t, 'name')             | let g:neofinder.theme = t.name | endif
+    if has_key(t, 'name')              | let g:neofinder.theme = t.name | endif
     if has_key(t, 'ascii_statusline') | let g:neofinder.ascii_statusline = t.ascii_statusline | endif
+    if has_key(t, 'brightness')       | let g:neofinder.theme_brightness = t.brightness | endif
+    if has_key(t, 'background')       | let g:neofinder.theme_bg = t.background | endif
+    if has_key(t, 'bold_keywords')    | let g:neofinder.theme_bold_keywords = t.bold_keywords | endif
+    if has_key(t, 'italic_comments')  | let g:neofinder.theme_italic_comments = t.italic_comments | endif
+    if has_key(t, 'transparent_bg')   | let g:neofinder.theme_transparent_bg = t.transparent_bg | endif
+    if has_key(t, 'guifont')          | let g:neofinder.theme_guifont = t.guifont | endif
   endif
 
   " Finder
@@ -315,6 +321,12 @@ function! s:create_default(path) abort
         \ '# Built-in: "matrix"  (custom themes: ~/.neofinder/themes/<name>.vim)',
         \ '[theme]',
         \ 'name = "matrix"',
+        \ 'brightness = 0                 # adjust brightness: -40 (darker) to 40 (brighter)',
+        \ 'background = ""                # override bg color: "" = theme default, e.g. "#1a1a2e"',
+        \ 'bold_keywords = true           # bold keywords, statements, conditionals',
+        \ 'italic_comments = true         # italic style for comments',
+        \ 'transparent_bg = false         # true = no background (use terminal bg)',
+        \ 'guifont = ""                   # GUI font: "" = default, e.g. "JetBrains Mono:h12"',
         \ 'ascii_statusline = false       # true for terminals without powerline fonts',
         \ '',
         \ '',

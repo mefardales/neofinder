@@ -144,6 +144,89 @@ function! neofinder#theme#list() abort
 endfunction
 
 " ---------------------------------------------------------------------------
+" Color math helpers for brightness adjustment
+" ---------------------------------------------------------------------------
+function! s:clamp(val, lo, hi) abort
+  return a:val < a:lo ? a:lo : a:val > a:hi ? a:hi : a:val
+endfunction
+
+function! s:hex_to_rgb(hex) abort
+  let h = substitute(a:hex, '^#', '', '')
+  return [str2nr(h[0:1], 16), str2nr(h[2:3], 16), str2nr(h[4:5], 16)]
+endfunction
+
+function! s:rgb_to_hex(r, g, b) abort
+  return printf('#%02x%02x%02x', a:r, a:g, a:b)
+endfunction
+
+function! s:adjust_brightness(hex, delta) abort
+  if a:hex =~? '^#[0-9a-f]\{6\}$' && a:delta != 0
+    let [r, g, b] = s:hex_to_rgb(a:hex)
+    let r = s:clamp(r + a:delta, 0, 255)
+    let g = s:clamp(g + a:delta, 0, 255)
+    let b = s:clamp(b + a:delta, 0, 255)
+    return s:rgb_to_hex(r, g, b)
+  endif
+  return a:hex
+endfunction
+
+" ---------------------------------------------------------------------------
+" Apply customizations from g:neofinder to a theme dict (modifies in-place)
+" ---------------------------------------------------------------------------
+function! s:apply_customizations(theme) abort
+  let bright = get(g:neofinder, 'theme_brightness', 0)
+  let bg_override = get(g:neofinder, 'theme_bg', '')
+  let bold_kw = get(g:neofinder, 'theme_bold_keywords', 1)
+  let italic_cm = get(g:neofinder, 'theme_italic_comments', 1)
+  let transparent = get(g:neofinder, 'theme_transparent_bg', 0)
+  let guifont = get(g:neofinder, 'theme_guifont', '')
+
+  let kw_groups = ['Keyword', 'Statement', 'Conditional', 'Repeat']
+  let kw_style = bold_kw ? 'bold' : 'NONE'
+
+  " Apply guifont
+  if guifont !=# '' && has('gui_running')
+    try | execute 'set guifont=' . escape(guifont, ' ') | catch | endtry
+  endif
+
+  for section in ['editor', 'finder', 'statusline']
+    if !has_key(a:theme, section) | continue | endif
+    for [grp, attrs] in items(a:theme[section])
+      " Brightness: shift all gui foreground colors
+      if bright != 0 && has_key(attrs, 'guifg') && attrs.guifg !=# 'NONE'
+        let attrs.guifg = s:adjust_brightness(attrs.guifg, bright)
+      endif
+
+      " Background override
+      if bg_override !=# '' && has_key(attrs, 'guibg') && attrs.guibg !=# 'NONE'
+            \ && attrs.guibg =~# '^#0[0-1]'
+        let attrs.guibg = bg_override
+      endif
+
+      " Transparent background
+      if transparent && has_key(attrs, 'guibg')
+        if grp ==# 'Normal' || grp ==# 'NonText' || grp ==# 'EndOfBuffer' || grp ==# 'SignColumn'
+          let attrs.guibg = 'NONE'
+          let attrs.ctermbg = 'NONE'
+        endif
+      endif
+
+      " Bold keywords toggle
+      if index(kw_groups, grp) >= 0 && section ==# 'editor'
+        let attrs.cterm = kw_style
+        let attrs.gui = kw_style
+      endif
+
+      " Italic comments toggle
+      if grp ==# 'Comment' && section ==# 'editor'
+        let attrs.cterm = italic_cm ? 'italic' : 'NONE'
+        let attrs.gui = italic_cm ? 'italic' : 'NONE'
+      endif
+    endfor
+  endfor
+endfunction
+
+" ---------------------------------------------------------------------------
 " Apply a single highlight group
 " ---------------------------------------------------------------------------
 function! s:apply_hl(hlname, attrs) abort
@@ -162,7 +245,10 @@ endfunction
 " ---------------------------------------------------------------------------
 function! neofinder#theme#apply() abort
   let name = get(g:neofinder, 'theme', 'matrix')
-  let theme = neofinder#theme#get(name)
+  let theme = deepcopy(neofinder#theme#get(name))
+
+  " 0) Apply user customizations (brightness, bg, bold, italic, font)
+  call s:apply_customizations(theme)
 
   " 1) Apply GLOBAL editor highlights (affects all of Vim)
   if has_key(theme, 'editor')
@@ -244,7 +330,8 @@ endfunction
 " ---------------------------------------------------------------------------
 function! neofinder#theme#apply_editor_only() abort
   let name = get(g:neofinder, 'theme', 'matrix')
-  let theme = neofinder#theme#get(name)
+  let theme = deepcopy(neofinder#theme#get(name))
+  call s:apply_customizations(theme)
   if has_key(theme, 'editor')
     for [hlname, attrs] in items(theme.editor)
       call s:apply_hl(hlname, attrs)
