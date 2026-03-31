@@ -626,14 +626,24 @@ nf.error("msg")</code></pre>
     <div class="code-label">Theme &amp; Finder</div>
     <pre><code>[theme]
 name = "matrix"
+brightness = 0           # -40 to 40
+background = ""          # "" or "#1a1a2e"
+bold_keywords = true
+italic_comments = true
+transparent_bg = false
+guifont = ""             # "JetBrains Mono:h12"
 
 [finder]
 height = 15
 preview = true
 max_files = 50000
+show_hidden = true
+sort_by = "name"         # "name", "modified", "size"
 
 [statusline]
-enabled = true</code></pre>
+enabled = true
+show_clock = true
+show_branch = true</code></pre>
   </div>
   <div>
     <div class="code-label">Editor</div>
@@ -685,11 +695,7 @@ b = "NetScan"</code></pre>
   <div class="card"><h4>matrix</h4><p>Green on black (default)</p></div>
 </div>
 
-<<<<<<< Updated upstream
-<p>Set in config: <code>name = "matrix"</code> under <code>[theme]</code>.</p>
-=======
 <p>Custom themes: <code>~/.neofinder/themes/&lt;name&gt;.vim</code>. Set <code>name = "matrix"</code> under <code>[theme]</code> in config.</p>
->>>>>>> Stashed changes
 
 <!-- ── STRUCTURE ── -->
 <h2 id="structure">Project Structure</h2>
@@ -704,7 +710,7 @@ b = "NetScan"</code></pre>
 │   ├── tags.vim                    Tags, favorites
 │   ├── actions.vim                 Open, split, tag, execute
 │   ├── sources.vim                 Data gathering
-│   ├── theme.vim                   Global themes
+│   ├── theme.vim                   Matrix theme + customizations
 │   ├── statusline.vim              Powerline statusline
 │   ├── preview.vim                 File preview
 │   ├── buffers.vim                 Buffer manager, terminal

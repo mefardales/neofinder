@@ -159,6 +159,17 @@ Themes affect the **entire editor** -- Normal, StatusLine, syntax groups, etc.
 |---|---|
 | `matrix` | Green on black (default) |
 
+Customizable via `config.toml`:
+
+| Option | Default | Description |
+|---|---|---|
+| `brightness` | `0` | Adjust all foreground colors: -40 (darker) to 40 (brighter) |
+| `background` | `""` | Override dark backgrounds with a custom color, e.g. `"#1a1a2e"` |
+| `bold_keywords` | `true` | Bold style for keywords, statements, conditionals |
+| `italic_comments` | `true` | Italic style for comments |
+| `transparent_bg` | `false` | Remove background colors (use terminal background) |
+| `guifont` | `""` | Font for GUI Vim (gVim/Neovide), e.g. `"JetBrains Mono:h12"` |
+
 Custom themes can be added at `~/.neofinder/themes/<name>.vim`. Switch themes by editing `config.toml` (`<Leader>fc`).
 
 ## Configuration
@@ -169,6 +180,12 @@ All settings live in `~/.neofinder/config.toml`. Open with `<Leader>fc`. Changes
 # Built-in: "matrix" (custom themes: ~/.neofinder/themes/<name>.vim)
 [theme]
 name = "matrix"
+brightness = 0               # adjust: -40 (darker) to 40 (brighter)
+background = ""              # override bg: "" = default, e.g. "#1a1a2e"
+bold_keywords = true         # bold keywords, statements, conditionals
+italic_comments = true       # italic style for comments
+transparent_bg = false       # no background (use terminal bg)
+guifont = ""                 # GUI font: e.g. "JetBrains Mono:h12"
 
 # Finder panel
 [finder]
@@ -176,6 +193,14 @@ height = 15
 preview = true
 preview_width = 60
 max_files = 50000
+show_hidden = true           # show dotfiles
+sort_by = "name"             # "name", "modified", "size"
+
+# Statusline
+[statusline]
+enabled = true
+show_clock = true            # clock in the right side
+show_branch = true           # git branch name
 
 # Editor defaults
 [editor]
