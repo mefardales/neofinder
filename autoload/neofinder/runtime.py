@@ -546,6 +546,30 @@ def _parse_handler_toml(path):
                         val = items
                     else:
                         val = []
+                elif val.startswith('{') and val.endswith('}'):
+                    # Inline table: { key = "val", key2 = "val2" }
+                    inner = val[1:-1].strip()
+                    obj = {}
+                    # Split by comma, but respect quoted strings
+                    parts = re.split(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', inner)
+                    for part in parts:
+                        kv = re.match(r'\s*(\w+)\s*=\s*(.+)', part.strip())
+                        if kv:
+                            k = kv.group(1)
+                            v = kv.group(2).strip()
+                            if v == 'true': v = True
+                            elif v == 'false': v = False
+                            elif v.startswith('"') and v.endswith('"'): v = v[1:-1]
+                            elif v.startswith("'") and v.endswith("'"): v = v[1:-1]
+                            elif re.match(r'^-?\d+$', v): v = int(v)
+                            elif v.startswith('[') and v.endswith(']'):
+                                arr_inner = v[1:-1].strip()
+                                if arr_inner:
+                                    v = [i.strip().strip('"').strip("'") for i in arr_inner.split(',')]
+                                else:
+                                    v = []
+                            obj[k] = v
+                    val = obj
                 section[key] = val
     return result
 

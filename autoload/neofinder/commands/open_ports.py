@@ -6,8 +6,13 @@
 import re
 from collections import defaultdict
 
+# Default filter if empty or invalid
+if filter not in ("all", "tcp", "udp", "listening"):
+    filter = "all"
+
 STDOUT.print("  Host: %s" % hostname)
 STDOUT.print("  Time: %s" % timestamp)
+STDOUT.print("  Filter: %s" % filter)
 STDOUT.print("")
 
 # ── Gather data via lsof ────────────────────────────────
