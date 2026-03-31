@@ -6,3 +6,12 @@ name = "NetConns"
 desc = "Active network connections"
 deps = ["output", "shell"]
 out = "[Connections]"
+platform = "linux,darwin"
+
+[header]
+show = true
+separator = "-"
+width = 50
+
+[env]
+timestamp = "datetime.now().strftime('%H:%M:%S')"

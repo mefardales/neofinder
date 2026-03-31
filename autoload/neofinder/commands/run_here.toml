@@ -6,6 +6,11 @@ name = "RunHere"
 desc = "Run shell command -> output buffer"
 deps = ["input", "output", "shell"]
 out = "[$ ${cmd}]"
+timeout = 60
 
 [in]
 cmd = "$ "
+
+[error]
+empty = "Command produced no output"
+fail = "Command exited with error"

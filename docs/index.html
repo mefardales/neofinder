@@ -388,24 +388,36 @@ dotfiles:/home/user/.bashrc</code></pre>
 <!-- ── COMMAND SYSTEM ── -->
 <h2 id="commands">Command System</h2>
 
-<p>Every command is a <code>.toml</code> handler + <code>.py</code> logic. Create with palette &rarr; <code>Commands :fe</code> &rarr; <code>[+] New command</code>.</p>
+<p>Every command is a <code>.toml</code> handler + <code>.py</code> logic. The TOML declares the contract (inputs, validation, output), the .py focuses on logic. Shell-only commands need no .py at all.</p>
 
 <div class="code-pair">
   <div>
-    <div class="code-label">net_scan.toml</div>
-    <pre><code># NetScan -- port scan a host
-
-name = "NetScan"
-desc = "Port scan a host"
+    <div class="code-label">net_scan.toml (full handler)</div>
+    <pre><code>name = "NetScan"
+desc = "Ping sweep or port check"
 deps = ["input", "output", "shell"]
 out = "[Scan ${host}]"
+filetype = "log"
 
 [in]
-host = "Host/IP: "</code></pre>
+host = "Host/IP: "
+
+[validate]
+commands = ["ping"]
+
+[header]
+show = true
+separator = "="
+width = 50
+info = ["host"]
+
+[error]
+empty = "Host unreachable"</code></pre>
   </div>
   <div>
-    <div class="code-label">net_scan.py</div>
-    <pre><code>STDOUT.print("Scanning %s..." % host)
+    <div class="code-label">net_scan.py (pure logic)</div>
+    <pre><code># host is auto-injected from [in]
+# header is auto-printed from [header]
 
 stdout, stderr, rc = nf.sh(
     "ping -c 3 %s" % host
@@ -414,6 +426,14 @@ STDOUT.write(stdout.splitlines())
 
 if rc != 0:
     STDERR.print("Host unreachable")</code></pre>
+    <div class="code-label" style="margin-top:12px">disk_usage.toml (shell-only, no .py)</div>
+    <pre><code>name = "DiskUsage"
+desc = "Disk usage summary"
+deps = ["output", "shell"]
+out = "[Disk Usage]"
+
+[shell]
+cmd = "df -h"</code></pre>
   </div>
 </div>
 
@@ -424,9 +444,59 @@ if rc != 0:
   <tr><td>desc</td><td>string</td><td>Description in palette</td></tr>
   <tr><td>deps</td><td>array</td><td><code>input</code>, <code>output</code>, <code>shell</code>, <code>buffer</code>, <code>tags</code></td></tr>
   <tr><td>out</td><td>string</td><td>Output buffer title. Supports <code>${var}</code></td></tr>
+  <tr><td>filetype</td><td>string</td><td>Syntax highlight for output buffer (<code>log</code>, <code>git</code>, etc.)</td></tr>
+  <tr><td>timeout</td><td>int</td><td>Kill after N seconds</td></tr>
+  <tr><td>platform</td><td>string</td><td>Restrict to OS: <code>"linux,darwin"</code></td></tr>
+  <tr><td>silent</td><td>bool</td><td>If true, don't open output buffer</td></tr>
   <tr><td>pipe</td><td>string</td><td><code>"buffer"</code> loads current buffer into STDIN</td></tr>
-  <tr><td>[in]</td><td>section</td><td>Variables to ask user. <code>key = "prompt"</code></td></tr>
 </table>
+
+<h3>Input [in]</h3>
+<table>
+  <tr><th>Format</th><th>Example</th><th>Description</th></tr>
+  <tr><td>Simple</td><td><code>host = "Host: "</code></td><td>String prompt</td></tr>
+  <tr><td>Default</td><td><code>port = { prompt = "Port: ", default = "80" }</code></td><td>Pre-filled value</td></tr>
+  <tr><td>Options</td><td><code>mode = { prompt = "Mode: ", options = ["fast", "full"] }</code></td><td>Select from list</td></tr>
+  <tr><td>Confirm</td><td><code>ok = { prompt = "Continue?", type = "confirm" }</code></td><td>Yes/no dialog</td></tr>
+  <tr><td>File</td><td><code>path = { prompt = "File: ", type = "file" }</code></td><td>Path with tab completion</td></tr>
+</table>
+
+<h3>Sections</h3>
+<div class="grid-2">
+  <div class="card">
+    <h4>[validate]</h4>
+    <p><code>commands = ["git"]</code> require binaries<br>
+    <code>filetype = ["python"]</code> restrict filetypes<br>
+    <code>min_lines = 1</code> buffer must have content</p>
+  </div>
+  <div class="card">
+    <h4>[env]</h4>
+    <p>Auto-injected variables (no prompt):<br>
+    <code>timestamp = "datetime.now()..."</code><br>
+    <code>cwd = "nf.dir"</code></p>
+  </div>
+  <div class="card">
+    <h4>[header]</h4>
+    <p><code>show = true</code> auto-print header<br>
+    <code>separator = "="</code> <code>width = 50</code><br>
+    <code>info = ["host"]</code> show input vars</p>
+  </div>
+  <div class="card">
+    <h4>[shell]</h4>
+    <p>Run shell cmd without .py:<br>
+    <code>cmd = "df -h"</code><br>
+    Supports <code>${var}</code> interpolation</p>
+  </div>
+  <div class="card">
+    <h4>[error]</h4>
+    <p><code>empty = "No results"</code> when STDOUT empty<br>
+    <code>fail = "Failed"</code> on non-zero exit</p>
+  </div>
+  <div class="card">
+    <h4>[in] + [env] + [shell]</h4>
+    <p>Combine them for powerful shell-only commands that ask input, validate, and run without any Python.</p>
+  </div>
+</div>
 
 <h3>Standard I/O</h3>
 <div class="grid-2">

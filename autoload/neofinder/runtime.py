@@ -553,23 +553,34 @@ def _parse_handler_toml(path):
 # =========================================================================
 #  Handler: reads .toml contract, prepares scope, executes .py
 # =========================================================================
+def _interpolate(text, scope):
+    """Replace ${var} placeholders with values from scope."""
+    for var_name, value in scope.items():
+        if isinstance(value, str):
+            text = text.replace('${%s}' % var_name, value)
+    return text
+
+
 def _run_command(py_path):
     """
     Main entry point called by python.vim.
 
     Flow:
       1. Read .toml handler (contract)
-      2. Create STDIN, STDOUT, STDERR
-      3. Process [in] -> populate STDIN + scope variables
-      4. Process pipe -> load buffer into STDIN if requested
-      5. Execute the .py
-      6. Flush STDOUT to output buffer
-      7. Show STDERR if any errors
+      2. Validate prerequisites ([validate])
+      3. Evaluate environment variables ([env])
+      4. Process [in] -> populate STDIN + scope variables
+      5. Process pipe -> load buffer into STDIN if requested
+      6. Auto-print header ([header])
+      7. Shell-only mode ([shell]) or execute .py
+      8. Post-execution error handling ([error])
+      9. Flush STDOUT to output buffer
+      10. Show STDERR if any errors
     """
     toml_path = py_path.rsplit('.', 1)[0] + '.toml'
     handler = {}
 
-    # 1) Read handler
+    # ── 1) Read handler ──────────────────────────────────────
     if _os.path.isfile(toml_path):
         try:
             handler = _parse_handler_toml(toml_path)
@@ -577,54 +588,210 @@ def _run_command(py_path):
             nf.error("Bad TOML in: %s (%s)" % (toml_path, e))
             return
 
-    # 2) Create I/O streams
+    # ── 2) Platform check ────────────────────────────────────
+    platform_str = handler.get('platform', '')
+    if platform_str:
+        import platform
+        current = platform.system().lower()
+        allowed = [p.strip().lower() for p in platform_str.split(',')]
+        if current not in allowed:
+            nf.warn("Command not available on %s (requires: %s)" % (current, platform_str))
+            return
+
+    # ── 3) Validate prerequisites ────────────────────────────
+    validate = handler.get('validate', {})
+    if validate:
+        # Check required binaries
+        cmds = validate.get('commands', [])
+        if isinstance(cmds, str):
+            cmds = [cmds]
+        import shutil
+        for cmd in cmds:
+            if not shutil.which(cmd):
+                nf.error("Required command not found: %s" % cmd)
+                return
+
+        # Check filetype restriction
+        ft_allowed = validate.get('filetype', [])
+        if isinstance(ft_allowed, str):
+            ft_allowed = [ft_allowed]
+        if ft_allowed:
+            current_ft = _vim.eval('&filetype')
+            if current_ft not in ft_allowed:
+                nf.error("Command requires filetype: %s (current: %s)" % (', '.join(ft_allowed), current_ft or 'none'))
+                return
+
+        # Check minimum buffer lines
+        min_lines = validate.get('min_lines', 0)
+        if min_lines and int(min_lines) > 0:
+            buf_len = len(_vim.current.buffer)
+            if buf_len < int(min_lines):
+                nf.error("Buffer needs at least %s lines (has %d)" % (min_lines, buf_len))
+                return
+
+    # ── 4) Create I/O streams ────────────────────────────────
     stdin  = _Stdin()
     stdout = _Stdout()
     stderr = _Stderr()
 
-    # Set output title from handler
     out_title = handler.get('out', '')
 
-    # 3) Process "in" -- ask user, populate STDIN and scope vars
+    # ── 5) Evaluate [env] -> auto-injected variables ─────────
     scope = {'nf': nf, 'STDIN': stdin, 'STDOUT': stdout, 'STDERR': stderr}
+    env = handler.get('env', {})
+    for var_name, expr in env.items():
+        try:
+            import platform, datetime
+            eval_scope = {'nf': nf, 'platform': platform, 'datetime': datetime,
+                          'os': _os, 'subprocess': _subprocess}
+            scope[var_name] = eval(str(expr), eval_scope)
+        except Exception as e:
+            scope[var_name] = str(expr)
+
+    # ── 6) Process [in] -> ask user, populate STDIN + scope ──
     inputs = handler.get('in', {})
-    for var_name, prompt in inputs.items():
+    for var_name, spec in inputs.items():
         _vim.command('redraw')
-        value = nf.input(str(prompt))
+
+        if isinstance(spec, dict):
+            # Rich input: { prompt, default, options, type }
+            prompt = spec.get('prompt', var_name + ': ')
+            default = spec.get('default', '')
+            options = spec.get('options', [])
+            input_type = spec.get('type', 'string')
+
+            if input_type == 'confirm':
+                result = nf.confirm(prompt)
+                value = 'yes' if result == 1 else 'no'
+            elif options:
+                # Show numbered list and let user pick
+                selected = nf.select(options, str(prompt))
+                if selected is None:
+                    if default:
+                        value = str(default)
+                    else:
+                        return
+                else:
+                    value = selected
+            elif input_type == 'file':
+                _vim.command("let s:_nf_input = input('%s', '', 'file')" % _esc(str(prompt)))
+                value = _vim.eval('s:_nf_input')
+            else:
+                if default:
+                    _vim.command("let s:_nf_input = input('%s', '%s')" % (_esc(str(prompt)), _esc(str(default))))
+                    value = _vim.eval('s:_nf_input')
+                else:
+                    value = nf.input(str(prompt))
+        else:
+            # Simple string prompt (backwards compatible)
+            value = nf.input(str(spec))
+
         _vim.command('redraw')
-        if not value:
+        if not value and not (isinstance(spec, dict) and spec.get('type') == 'confirm'):
             return  # user cancelled
         stdin.set(var_name, value)
-        scope[var_name] = value   # also as direct variable
+        scope[var_name] = value
 
-    # 4) Process "pipe" -- load buffer content into STDIN
+    # ── 7) Process "pipe" -> load buffer into STDIN ──────────
     if handler.get('pipe') == 'buffer':
         stdin.read_buffer()
 
-    # 5) Interpolate ${var} in output title
+    # ── 8) Interpolate ${var} in output title ────────────────
     if out_title:
-        for var_name, value in scope.items():
-            if isinstance(value, str):
-                out_title = out_title.replace('${%s}' % var_name, value)
+        out_title = _interpolate(out_title, scope)
         stdout._title = out_title
 
-    # 6) Execute
+    # ── 9) Auto-print header ─────────────────────────────────
+    header = handler.get('header', {})
+    if header and header.get('show', False):
+        sep = str(header.get('separator', '='))
+        width = int(header.get('width', 50))
+        cmd_name = handler.get('name', '')
+        stdout.print(cmd_name)
+        stdout.print(sep * width)
+        # Print listed input vars in header
+        info_vars = header.get('info', [])
+        if isinstance(info_vars, str):
+            info_vars = [info_vars]
+        for v in info_vars:
+            if v in scope and isinstance(scope[v], str):
+                stdout.print("  %s: %s" % (v, scope[v]))
+        if info_vars:
+            stdout.print(sep * width)
+        stdout.print('')
+
+    # ── 10) Execute: shell-only or .py ───────────────────────
     nf._echo_count = 0
+    timeout = int(handler.get('timeout', 0))
+    shell_section = handler.get('shell', {})
+    shell_cmd = shell_section.get('cmd', '') if isinstance(shell_section, dict) else ''
 
-    with open(py_path, 'r') as f:
-        code = f.read()
+    if shell_cmd and not _os.path.isfile(py_path):
+        # Shell-only mode: run cmd from TOML, no .py needed
+        shell_cmd = _interpolate(shell_cmd, scope)
+        try:
+            if timeout > 0:
+                r = _subprocess.run(shell_cmd, shell=True, capture_output=True,
+                                    text=True, timeout=timeout)
+            else:
+                r = _subprocess.run(shell_cmd, shell=True, capture_output=True, text=True)
+            if r.stdout:
+                stdout.write(r.stdout.splitlines())
+            if r.returncode != 0 and r.stderr:
+                error_section = handler.get('error', {})
+                fail_msg = error_section.get('fail', '')
+                if fail_msg:
+                    stderr.print(fail_msg)
+                else:
+                    stderr.write(r.stderr.splitlines())
+        except _subprocess.TimeoutExpired:
+            stderr.print("Command timed out after %ds" % timeout)
+        except Exception as e:
+            stderr.print("Shell error: %s" % str(e))
+    elif _os.path.isfile(py_path):
+        # Execute .py script
+        with open(py_path, 'r') as f:
+            code = f.read()
+        try:
+            if timeout > 0:
+                # For .py scripts, timeout via signal (unix only)
+                import signal
+                def _timeout_handler(signum, frame):
+                    raise TimeoutError("Script timed out after %ds" % timeout)
+                old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+                signal.alarm(timeout)
+                try:
+                    exec(code, scope)
+                finally:
+                    signal.alarm(0)
+                    signal.signal(signal.SIGALRM, old_handler)
+            else:
+                exec(code, scope)
+        except TimeoutError as e:
+            stderr.print(str(e))
+        except Exception as e:
+            stderr.write("Error: %s" % str(e))
 
-    try:
-        exec(code, scope)
-    except Exception as e:
-        stderr.write("Error: %s" % str(e))
+    # ── 11) Post-execution error checks ──────────────────────
+    error_section = handler.get('error', {})
+    if error_section:
+        if not stdout.lines and error_section.get('empty', ''):
+            stderr.print(error_section['empty'])
 
-    # 7) Flush STDOUT to output buffer
-    stdout.flush()
+    # ── 12) Set output buffer filetype ───────────────────────
+    out_filetype = handler.get('filetype', '')
 
-    # 8) Show STDERR
+    # ── 13) Flush STDOUT to output buffer ────────────────────
+    silent = handler.get('silent', False)
+    if not silent:
+        stdout.flush()
+        # Apply filetype after buffer is created
+        if out_filetype and stdout.lines:
+            _vim.command('setlocal filetype=%s' % out_filetype)
+
+    # ── 14) Show STDERR ──────────────────────────────────────
     stderr.show()
 
-    # 9) If command used echo (no output buffer), pause so user can read
+    # ── 15) Pause for echo-only commands ─────────────────────
     if nf._echo_count > 0 and not stdout.lines:
         _vim.eval('input(" ")')

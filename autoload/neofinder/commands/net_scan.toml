@@ -6,6 +6,19 @@ name = "NetScan"
 desc = "Ping sweep or port check on a host"
 deps = ["input", "output", "shell"]
 out = "[Scan ${host}]"
+filetype = "log"
 
 [in]
 host = "Host/IP: "
+
+[validate]
+commands = ["ping"]
+
+[header]
+show = true
+separator = "="
+width = 50
+info = ["host"]
+
+[error]
+empty = "Host unreachable or no open ports found"
