@@ -10,7 +10,7 @@ platform = "linux,darwin"
 timeout = 30
 
 [in]
-filter = { prompt = "Filter (all/tcp/udp/listening): ", options = ["all", "tcp", "udp", "listening"], default = "all" }
+filter = "Filter (all/tcp/udp/listening): "
 
 [validate]
 commands = ["lsof"]
