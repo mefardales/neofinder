@@ -115,9 +115,16 @@
     .note { background: var(--note-bg); border-left: 3px solid var(--note-border); padding: 10px 14px; margin: 12px 0; border-radius: 2px; font-size: 0.9em; }
 
     .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
-    .install-card { background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 3px; padding: 12px 14px; }
+    .install-card { background: var(--card-bg); border: 1px solid var(--border-light); border-radius: 3px; padding: 12px 14px; position: relative; }
     .install-card .label { font-size: 0.78em; font-weight: 600; color: var(--fg-dim); margin-bottom: 6px; }
-    .install-card code { display: block; background: var(--bg-code); border: 1px solid var(--border-light); padding: 8px 10px; border-radius: 2px; font-size: 0.82em; word-break: break-all; color: var(--fg); }
+    .install-card .code-wrap { position: relative; }
+    .install-card code { display: block; background: var(--bg-code); border: 1px solid var(--border-light); padding: 8px 32px 8px 10px; border-radius: 2px; font-size: 0.82em; word-break: break-all; color: var(--fg); }
+    .copy-btn {
+      position: absolute; top: 6px; right: 6px; background: none; border: none;
+      cursor: pointer; color: var(--fg-dim); padding: 2px; border-radius: 2px; transition: color 0.2s;
+    }
+    .copy-btn:hover { color: var(--accent); }
+    .copy-btn svg { display: block; }
 
     a { color: var(--link); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -200,19 +207,31 @@
 <div class="install-grid">
   <div class="install-card">
     <div class="label">vim-plug</div>
-    <code>Plug 'mefardales/neofinder'</code>
+    <div class="code-wrap">
+      <code>Plug 'mefardales/neofinder'</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
   <div class="install-card">
     <div class="label">One-liner</div>
-    <code>curl -fsSL https://raw.githubusercontent.com/mefardales/neofinder/main/install.sh | bash</code>
+    <div class="code-wrap">
+      <code>curl -fsSL https://raw.githubusercontent.com/mefardales/neofinder/main/install.sh | bash</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
   <div class="install-card">
     <div class="label">Vim 8+ native</div>
-    <code>git clone https://github.com/mefardales/neofinder.git ~/.vim/pack/plugins/start/neofinder</code>
+    <div class="code-wrap">
+      <code>git clone https://github.com/mefardales/neofinder.git ~/.vim/pack/plugins/start/neofinder</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
   <div class="install-card">
     <div class="label">Neovim</div>
-    <code>git clone https://github.com/mefardales/neofinder.git ~/.local/share/nvim/site/pack/plugins/start/neofinder</code>
+    <div class="code-wrap">
+      <code>git clone https://github.com/mefardales/neofinder.git ~/.local/share/nvim/site/pack/plugins/start/neofinder</code>
+      <button class="copy-btn" onclick="copyCode(this)" title="Copy"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    </div>
   </div>
 </div>
 
@@ -695,6 +714,15 @@ Open with <span class="hl-key">&lt;Leader&gt;fc</span> and save to apply.
 </div>
 
 <script>
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(function() {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(function() {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    }, 1500);
+  });
+}
 function updateIcons() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   document.getElementById('icon-moon').style.display = isDark ? 'block' : 'none';
